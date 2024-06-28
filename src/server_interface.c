@@ -1,5 +1,7 @@
 #include "server_interface.h"
 
+#define BACKLOG_CAPACITY 20
+
 /**
  * @brief               Initiate server
  *
@@ -120,7 +122,7 @@ static int server_setup(int            svr_sock,
 
     // Accept oncoming connections
 
-    while ((ERR != (clnt_skt = accept(svr_sock,
+    while ((ERROR != (clnt_skt = accept(svr_sock,
                                       (struct sockaddr *)&client_skt_t,
                                       &client_addr_len))))
     {

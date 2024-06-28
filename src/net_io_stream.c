@@ -49,7 +49,7 @@ ssize_t receive_bytes(int read_fd, void * buffer, ssize_t num_of_bytes)
             // JQR Item - 6.8.2 and 6.11.6 / Pointer arithmetic is used to read
             // each byte
 
-            if (SUCCESS != errno)
+            if (E_SUCCESS != errno)
             {
                 DEBUG_PRINT("\n\nERROR [x]  Error occurred in recv(): %s\n\n",
                             __func__);
@@ -115,7 +115,7 @@ ssize_t send_bytes(int write_fd, void * buffer, ssize_t num_of_bytes)
                 write_fd, ((uint8_t *)buffer + total_bytes), 1, 0);
             // JQR Item - 6.8.3 /
 
-            if (SUCCESS != errno)
+            if (E_SUCCESS != errno)
             {
                 DEBUG_PRINT("\n\nERROR [x]  Error occurred in send(): %s\n\n",
                             __func__);
@@ -147,7 +147,7 @@ EXIT:
 
 int convert_endianess16(void * bytes)
 {
-    int err_code = FAILURE;
+    int err_code = E_FAILURE;
 
     if (NULL == bytes)
     {
@@ -162,7 +162,7 @@ int convert_endianess16(void * bytes)
 
     // For signed: *(int16_t *)bytes (num>>8) | ((num<<8) & 0xFF);
 
-    err_code = SUCCESS;
+    err_code = E_SUCCESS;
 
 EXIT:
 
@@ -171,7 +171,7 @@ EXIT:
 
 int convert_endianess32(void * bytes)
 {
-    int err_code = FAILURE;
+    int err_code = E_FAILURE;
 
     if (NULL == bytes)
     {
@@ -188,7 +188,7 @@ int convert_endianess32(void * bytes)
 
     // For signed: *(int64_t *)bytes = (num << 16) | ((num >> 16) & FFFF);
 
-    err_code = SUCCESS;
+    err_code = E_SUCCESS;
 
 EXIT:
 
@@ -197,7 +197,7 @@ EXIT:
 
 int convert_endianess64(void * bytes)
 {
-    int err_code = FAILURE;
+    int err_code = E_FAILURE;
 
     if (NULL == bytes)
     {
@@ -215,7 +215,7 @@ int convert_endianess64(void * bytes)
     
     // For signed: *(int64_t *)bytes = (num << 32) | ((num >> 32) & 0xFFFFFFFFULL);
     
-    err_code = SUCCESS;
+    err_code = E_SUCCESS;
 
 EXIT:
 

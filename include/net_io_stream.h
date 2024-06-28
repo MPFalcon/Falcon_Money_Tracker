@@ -12,6 +12,7 @@
 #    include <netinet/in.h>
 
 #    include "print_utilities.h"
+#    include "signals.h"
 
 #    define SIGNAL_IDLE 0
 
