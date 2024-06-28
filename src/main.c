@@ -4,16 +4,15 @@ int main(int argc, char ** argv)
 {
     int err_code = EXIT_FAILURE;
 
-    options_t options = {
-        .port      = DEFAULT_PORT,
-        .port_flag = false
-    };
+    options_t options = { .port = DEFAULT_PORT, .port_flag = false };
 
     err_code = signal_action_setup();
 
     if (ERROR == err_code)
     {
-        DEBUG_PRINT("\n\nERROR [x]  Error occurred in signal_action_setup() : %s", __func__);
+        DEBUG_PRINT(
+            "\n\nERROR [x]  Error occurred in signal_action_setup() : %s",
+            __func__);
 
         goto EXIT;
     }
@@ -22,7 +21,9 @@ int main(int argc, char ** argv)
 
     if (E_FAILURE == err_code)
     {
-        DEBUG_PRINT("\n\nERROR [x]  Error occurred in signal_action_setup() : %s", __func__);
+        DEBUG_PRINT(
+            "\n\nERROR [x]  Error occurred in signal_action_setup() : %s",
+            __func__);
 
         goto EXIT;
     }
@@ -31,7 +32,9 @@ int main(int argc, char ** argv)
 
     if (E_FAILURE == err_code)
     {
-        DEBUG_PRINT("\n\nERROR [x]  Error occurred in signal_action_setup() : %s", __func__);
+        DEBUG_PRINT(
+            "\n\nERROR [x]  Error occurred in signal_action_setup() : %s",
+            __func__);
 
         goto EXIT;
     }

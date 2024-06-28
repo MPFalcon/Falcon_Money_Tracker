@@ -1,5 +1,4 @@
-clang-format -i Common/include/*
-clang-format -i Common/src/*
-clang-format -i Graphs/Adjacency_List/include/*
-clang-format -i Graphs/Adjacency_List/include/*
-clang-format -i Graphs/Adjacency_List/src/*
+clang-format -i common/include/*
+clang-format -i common/src/*
+clang-format -i include/*
+clang-format -i src/*

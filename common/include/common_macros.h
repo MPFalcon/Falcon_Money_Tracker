@@ -7,20 +7,20 @@
 #    define COMMON_MACROS_H
 #    define _GNU_SOURCE
 
+#    include <errno.h>
+#    include <fcntl.h>
+#    include <limits.h>
+#    include <stdint.h>
 #    include <stdio.h>
 #    include <stdlib.h>
-#    include <fcntl.h>
-#    include <sys/types.h>
-#    include <stdint.h>
-#    include <limits.h>
-#    include <unistd.h>
 #    include <string.h>
-#    include <errno.h>
+#    include <sys/types.h>
+#    include <unistd.h>
 
-#    define ERROR          -1
-#    define E_SUCCESS      0
-#    define E_FAILURE      1
-#    define DEFAULT_BASE   10
+#    define ERROR        -1
+#    define E_SUCCESS    0
+#    define E_FAILURE    1
+#    define DEFAULT_BASE 10
 
 #endif /* COMMON_MACROS_H */
 

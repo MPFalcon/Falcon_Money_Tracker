@@ -12,9 +12,9 @@
 
 #    include "server_interface.h"
 
-#    define MAX_PORT_NUM         65535
-#    define MIN_PORT_NUM         1024
-#    define DEFAULT_PORT         31337U
+#    define MAX_PORT_NUM 65535
+#    define MIN_PORT_NUM 1024
+#    define DEFAULT_PORT 31337U
 
 typedef struct options
 {

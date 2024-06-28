@@ -12,17 +12,26 @@ void signal_handler(int signal)
     switch (signal)
     {
         case SIGINT:
-            DEBUG_PRINT("\n\nNOTE [x]  SIGINT detected - Commencing graceful shutdown... : %s", __func__);
+            DEBUG_PRINT(
+                "\n\nNOTE [x]  SIGINT detected - Commencing graceful "
+                "shutdown... : %s",
+                __func__);
             signal_flag_g = SIGINT_TRIGGERED;
 
             break;
         case SIGUSR1:
-            DEBUG_PRINT("\n\nNOTE [x]  SIGUSR1 detected - Commencing graceful shutdown... : %s", __func__);
+            DEBUG_PRINT(
+                "\n\nNOTE [x]  SIGUSR1 detected - Commencing graceful "
+                "shutdown... : %s",
+                __func__);
             signal_flag_g = SIGINT_TRIGGERED;
 
             break;
         case SIGPIPE:
-            DEBUG_PRINT("\n\nNOTE [x]  SIGPIPE detected - Commencing graceful shutdown... : %s", __func__);
+            DEBUG_PRINT(
+                "\n\nNOTE [x]  SIGPIPE detected - Commencing graceful "
+                "shutdown... : %s",
+                __func__);
             signal_flag_g = SIGINT_TRIGGERED;
 
             break;

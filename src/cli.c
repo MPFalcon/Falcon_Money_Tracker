@@ -92,9 +92,7 @@ static int handle_p_argument(uint16_t * p_requested_port, bool * p_flag)
 
     if (true == *p_flag)
     {
-        (void)fprintf(
-            stderr,
-            "\n\nNOTE [x]  Duplicate option detected\n\n");
+        (void)fprintf(stderr, "\n\nNOTE [x]  Duplicate option detected\n\n");
 
         goto EXIT;
     }
@@ -112,19 +110,17 @@ static int handle_p_argument(uint16_t * p_requested_port, bool * p_flag)
     if (('\0' != *p_restricted_char) || (errno != 0))
     {
         (void)fprintf(
-            stderr,
-            "\n\nNOTE [x]  Port number must be an integral value\n\n");
+            stderr, "\n\nNOTE [x]  Port number must be an integral value\n\n");
 
         goto EXIT;
     }
 
     if ((MAX_PORT_NUM < restricted_int) || (MIN_PORT_NUM > restricted_int))
     {
-        (void)fprintf(
-            stderr,
-            "\n\nNOTE [x]  Port number must be between %d and %d\n\n",
-            MIN_PORT_NUM,
-            MAX_PORT_NUM);
+        (void)fprintf(stderr,
+                      "\n\nNOTE [x]  Port number must be between %d and %d\n\n",
+                      MIN_PORT_NUM,
+                      MAX_PORT_NUM);
 
         goto EXIT;
     }
@@ -141,11 +137,12 @@ EXIT:
 
 static void print_help()
 {
-    printf("\n\n   Falcon Money Tracker Server\n"
-            "---------------------------------\n\n"
-            "money_track_server [-p PORT] [-h]\n\n"
-            "-h  Show this message\n"
-            "-p  PORT\n\n");
+    printf(
+        "\n\n   Falcon Money Tracker Server\n"
+        "---------------------------------\n\n"
+        "money_track_server [-p PORT] [-h]\n\n"
+        "-h  Show this message\n"
+        "-p  PORT\n\n");
 }
 
 /*** end of file ***/

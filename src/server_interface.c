@@ -1,6 +1,22 @@
 #include "server_interface.h"
 
+#define CLIENT_LIST_NOFULL 0x0
+#define CLIENT_LIST_FULL   0x12
+
 #define BACKLOG_CAPACITY 20
+typedef struct poll_fd_node
+{
+    uint16_t position;
+    uint8_t  flag;
+    struct   pollfd client_list[BACKLOG_CAPACITY];
+    struct   poll_fd_node * next;
+} poll_fd_node_t;
+typedef struct poll_fd_list
+{
+    struct pollfd server_poll_fd;
+    poll_fd_node_t * head;
+    poll_fd_node_t * tail;
+} poll_fd_list_t;
 
 /**
  * @brief               Initiate server
@@ -11,8 +27,7 @@
  * @return              SUCCESS: 0
  *                      FAILURE: 1
  */
-static int server_setup(int            svr_sock,
-                        uint16_t       port);
+static int server_setup(int svr_sock, uint16_t port);
 
 /**
  * @brief               Properly and gracefully shut down server and
@@ -34,14 +49,13 @@ int setup_driver(uint16_t port)
 
     if (E_SUCCESS != err_code)
     {
-        DEBUG_PRINT(
-            "\n\nERROR [x]  Error occurred in server_setup() : %s\n\n",
-            __func__);
+        DEBUG_PRINT("\n\nERROR [x]  Error occurred in server_setup() : %s\n\n",
+                    __func__);
     }
 
     err_code = server_shutdown(svr_sock);
 
-     if (E_SUCCESS != err_code)
+    if (E_SUCCESS != err_code)
     {
         DEBUG_PRINT(
             "\n\nERROR [x]  Error occurred in server_shutdown() : %s\n\n",
@@ -55,10 +69,17 @@ EXIT:
     return err_code;
 }
 
-static int server_setup(int            svr_sock,
-                        uint16_t       port)
+static int server_setup(int svr_sock, uint16_t port)
 {
     int err_code = E_FAILURE;
+
+    poll_fd_list_t poll_list = {
+        .server_poll_fd.fd = svr_sock,
+        .server_poll_fd.events = POLLIN,
+        .server_poll_fd.revents = 0,
+        .head = NULL,
+        .tail = NULL
+    };
 
     struct sockaddr_in server_skt_t;
     struct sockaddr_in client_skt_t;
@@ -110,7 +131,7 @@ static int server_setup(int            svr_sock,
 
     // Listen on that socket
 
-    err_code = listen(svr_sock, BACKLOG_CAPACITY);
+    err_code = listen(svr_sock, (BACKLOG_CAPACITY * 2));
 
     if (E_SUCCESS != err_code)
     {
@@ -120,17 +141,29 @@ static int server_setup(int            svr_sock,
         goto EXIT;
     }
 
+    poll_list.head = (poll_fd_node_t *)calloc(1, sizeof(poll_fd_list_t));
+
+    if (NULL == poll_list.head)
+    {
+        DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
+    }
+
+    memset(poll_list.head->client_list, 0, sizeof(struct pollfd));
+    poll_list.tail = poll_list.head;
+    poll_list.head->next = poll_list.tail;
+
     // Accept oncoming connections
 
     while ((ERROR != (clnt_skt = accept(svr_sock,
-                                      (struct sockaddr *)&client_skt_t,
-                                      &client_addr_len))))
+                                        (struct sockaddr *)&client_skt_t,
+                                        &client_addr_len))))
     {
         if (SIGNAL_IDLE != signal_flag_g)
         {
             break;
         }
-        
+
+        session_driver(clnt_skt);
     }
 
 EXIT:
@@ -150,7 +183,7 @@ static int server_shutdown(int svr_sock)
     //     __func__);
     // }
 
-    //err_code = notify_clients();
+    // err_code = notify_clients();
 
     close(svr_sock);
 
