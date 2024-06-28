@@ -1,19 +1,22 @@
 #include "server_interface.h"
 
 #define CLIENT_LIST_NOFULL 0x0
-#define CLIENT_LIST_FULL   0x12
+#define CLIENT_LIST_FULL   0x1
 
+#define MAX_CLIENT_LISTS 10
 #define BACKLOG_CAPACITY 20
+
+typedef struct pollfd pollfd_t;
 typedef struct poll_fd_node
 {
     uint16_t position;
     uint8_t  flag;
-    struct   pollfd client_list[BACKLOG_CAPACITY];
+    pollfd_t client_list[BACKLOG_CAPACITY];
     struct   poll_fd_node * next;
 } poll_fd_node_t;
 typedef struct poll_fd_list
 {
-    struct pollfd server_poll_fd;
+    pollfd_t server_poll_fd;
     poll_fd_node_t * head;
     poll_fd_node_t * tail;
 } poll_fd_list_t;
@@ -146,13 +149,69 @@ static int server_setup(int svr_sock, uint16_t port)
     if (NULL == poll_list.head)
     {
         DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
+
+        goto EXIT;
     }
 
     memset(poll_list.head->client_list, 0, sizeof(struct pollfd));
     poll_list.tail = poll_list.head;
     poll_list.head->next = poll_list.tail;
 
-    // Accept oncoming connections
+    poll_fd_node_t * curr_node = poll_list.head;
+
+    for(;;)
+    {
+        if (SIGNAL_IDLE != signal_flag_g)
+        {
+            break;
+        }
+
+        err_code = list_iteration(curr_node);
+
+        if (E_SUCCESS != err_code)
+        {
+            DEBUG_PRINT("\n\nERROR [x]  Error occurred at list_iteration(): %s\n\n", __func__);
+
+            goto EXIT;
+        }
+
+        if ((0 != (curr_node->flag & CLIENT_LIST_FULL)) && (NULL == curr_node->next) && (MAX_CLIENT_LISTS >= curr_node->position))
+        {
+            err_code = create_new_node(&poll_list);
+
+            if (E_SUCCESS != err_code)
+            {
+                DEBUG_PRINT("\n\nERROR [x]  Error occurred at create_new_node(): %s\n\n", __func__);
+
+                goto EXIT;
+            }
+        }
+
+        curr_node = curr_node->next;
+    }
+
+    err_code = E_SUCCESS;
+
+EXIT:
+
+    return err_code;
+}
+
+static int create_new_node(poll_fd_list_t * poll_list)
+{
+
+}
+
+static int list_iteration(poll_fd_node_t * client_list_node, pollfd_t * server_fd)
+{
+    int err_code = E_FAILURE;
+
+    if ((NULL == client_list_node) || (NULL == server_fd))
+    {
+        DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
+
+        goto EXIT;
+    }
 
     while ((ERROR != (clnt_skt = accept(svr_sock,
                                         (struct sockaddr *)&client_skt_t,
@@ -165,6 +224,8 @@ static int server_setup(int svr_sock, uint16_t port)
 
         session_driver(clnt_skt);
     }
+
+    err_code = E_SUCCESS;
 
 EXIT:
 
