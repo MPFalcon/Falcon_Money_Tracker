@@ -2,16 +2,19 @@
 
 #define MAX_MTU 1500
 
-#define BITS32      32
-#define BITS16      16
-#define BITS8       8
-#define BITS32      32
-#define E32_LMASK   0xFF00FF00
-#define E32_RMASK   0xFF00FF
-#define E64_LMASK   0xFF00FF00FF00FF00ULL
-#define E64_RMASK   0x00FF00FF00FF00FFULL
-#define E64_LMASK2B 0xFFFF0000FFFF0000ULL
-#define E64_RMASK2B 0x0000FFFF0000FFFFULL
+#define BITS32        32
+#define BITS16        16
+#define BITS8         8
+#define BITS32        32
+#define E32_LMASK     0xFF00FF00
+#define E32_RMASK     0xFF00FF
+#define E64_LMASK     0xFF00FF00FF00FF00ULL
+#define E64_RMASK     0x00FF00FF00FF00FFULL
+#define E64_LMASK2B   0xFFFF0000FFFF0000ULL
+#define E64_RMASK2B   0x0000FFFF0000FFFFULL
+#define SIGNED_16MASK 0xFF
+#define SIGNED_32MASK 0xFFFF
+#define SIGNED_64MASK 0xFFFFFFFFULL
 
 ssize_t receive_bytes(int read_fd, void * buffer, ssize_t num_of_bytes)
 {
@@ -160,7 +163,7 @@ int convert_endianess16(void * bytes)
 
     *(uint16_t *)bytes = (num >> BITS8) | (num << BITS8);
 
-    // For signed: *(int16_t *)bytes (num>>8) | ((num<<8) & 0xFF);
+    // For signed: *(int16_t *)bytes (num >> BITS8) | ((num << BITS8) & SIGNED_16MASK);
 
     err_code = E_SUCCESS;
 
@@ -186,7 +189,7 @@ int convert_endianess32(void * bytes)
     
     *(uint32_t *)bytes = (num << BITS16) | (num >> BITS16);
 
-    // For signed: *(int64_t *)bytes = (num << 16) | ((num >> 16) & FFFF);
+    // For signed: *(int64_t *)bytes = (num << BITS16) | ((num >> BITS16) & SIGNED_32MASK);
 
     err_code = E_SUCCESS;
 
@@ -213,7 +216,7 @@ int convert_endianess64(void * bytes)
 
     *(uint64_t *)bytes = (num << BITS32) | (num >> BITS32);
     
-    // For signed: *(int64_t *)bytes = (num << 32) | ((num >> 32) & 0xFFFFFFFFULL);
+    // For signed: *(int64_t *)bytes = (num << BITS32) | ((num >> BITS32) & SIGNED_64MASK);
     
     err_code = E_SUCCESS;
 
