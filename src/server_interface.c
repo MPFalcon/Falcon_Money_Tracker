@@ -86,13 +86,10 @@ static int server_setup(int svr_sock, uint16_t port)
     };
 
     struct sockaddr_in server_skt_t;
-    struct sockaddr_in client_skt_t;
 
-    int clnt_skt = 0;
     int opt      = 1;
 
     socklen_t server_addr_len = sizeof(struct sockaddr_in);
-    socklen_t client_addr_len = sizeof(struct sockaddr_in);
 
     svr_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
 
@@ -176,7 +173,7 @@ static int server_setup(int svr_sock, uint16_t port)
             break;
         }
 
-        err_code = list_iteration(curr_node);
+        err_code = list_iteration(curr_node, &poll_list.server_poll_fd);
 
         if (E_SUCCESS != err_code)
         {
@@ -225,11 +222,16 @@ EXIT:
     return err_code;
 }
 
-static int list_iteration(poll_fd_node_t * client_list_node)
+static int list_iteration(poll_fd_node_t * client_list_node, pollfd_t * server_fd)
 {
     int err_code = E_FAILURE;
+    int client_fd = 0;
 
-    if (NULL == client_list_node)
+    struct sockaddr_in client_skt_t;
+
+    socklen_t client_addr_len = sizeof(struct sockaddr_in);
+
+    if ((NULL == client_list_node) || (NULL == server_fd))
     {
         DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
 
@@ -238,21 +240,27 @@ static int list_iteration(poll_fd_node_t * client_list_node)
 
     for (int idx = 0; BACKLOG_CAPACITY > idx; idx++)
     {
-
-    }
-
-    if ()
-
-    while ((ERROR != (clnt_skt = accept(svr_sock,
-                                        (struct sockaddr *)&client_skt_t,
-                                        &client_addr_len))))
-    {
-        if (SIGNAL_IDLE != signal_flag_g)
+        if (client_list_node->active_clients == BACKLOG_CAPACITY)
         {
+            client_list_node->flag = (client_list_node->flag | CLIENT_LIST_FULL);
+
             break;
         }
 
-        session_driver(clnt_skt);
+        if (0 >= client_list_node->client_list[idx].fd)
+        {
+            continue;
+        }
+
+        if ((client_list_node->client_list[idx].revents & POLLIN) == POLLIN)
+        {
+            if(ERROR != (client_fd = accept(server_fd->fd,
+                                        (struct sockaddr *)&client_skt_t,
+                                        &client_addr_len)))
+            {
+                
+            }
+        }
     }
 
     err_code = E_SUCCESS;
