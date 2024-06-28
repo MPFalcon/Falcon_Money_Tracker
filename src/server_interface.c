@@ -11,6 +11,7 @@ typedef struct poll_fd_node
 {
     uint16_t position;
     uint8_t  flag;
+    uint64_t active_clients;
     pollfd_t client_list[BACKLOG_CAPACITY];
     struct   poll_fd_node * next;
 } poll_fd_node_t;
@@ -153,7 +154,11 @@ static int server_setup(int svr_sock, uint16_t port)
         goto EXIT;
     }
 
-    memset(poll_list.head->client_list, 0, sizeof(struct pollfd));
+    poll_list.head->position = 0;
+    poll_list.head->flag = CLIENT_LIST_NOFULL;
+    poll_list.head->active_clients = 0;
+    memset(&poll_list.server_poll_fd, 0, sizeof(pollfd_t));
+    memset(poll_list.head->client_list, 0, (BACKLOG_CAPACITY * sizeof(pollfd_t)));
     poll_list.tail = poll_list.head;
     poll_list.head->next = poll_list.tail;
 
@@ -162,6 +167,11 @@ static int server_setup(int svr_sock, uint16_t port)
     for(;;)
     {
         if (SIGNAL_IDLE != signal_flag_g)
+        {
+            break;
+        }
+
+        if (poll(&poll_list.server_poll_fd, 1, -1) == -1)
         {
             break;
         }
@@ -199,19 +209,39 @@ EXIT:
 
 static int create_new_node(poll_fd_list_t * poll_list)
 {
-
-}
-
-static int list_iteration(poll_fd_node_t * client_list_node, pollfd_t * server_fd)
-{
     int err_code = E_FAILURE;
 
-    if ((NULL == client_list_node) || (NULL == server_fd))
+    if (NULL == poll_list)
     {
         DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
 
         goto EXIT;
     }
+
+    err_code = E_SUCCESS;
+
+EXIT:
+
+    return err_code;
+}
+
+static int list_iteration(poll_fd_node_t * client_list_node)
+{
+    int err_code = E_FAILURE;
+
+    if (NULL == client_list_node)
+    {
+        DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
+
+        goto EXIT;
+    }
+
+    for (int idx = 0; BACKLOG_CAPACITY > idx; idx++)
+    {
+
+    }
+
+    if ()
 
     while ((ERROR != (clnt_skt = accept(svr_sock,
                                         (struct sockaddr *)&client_skt_t,
