@@ -35,6 +35,8 @@ void session_driver(int client, int * con_exit)
         goto EXIT;
     }
 
+    printf("\n\nClient #%d Connected\n\n", client);
+
     meta_data_t meta_data = { 0 };
 
     meta_data.msg_len = snprintf(

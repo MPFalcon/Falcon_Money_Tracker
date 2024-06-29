@@ -4,7 +4,7 @@
 #define CLIENT_LIST_FULL   0x1
 
 #define MAX_CLIENT_LISTS 10
-#define CAPACITY         1
+#define CAPACITY         3
 
 typedef struct pollfd pollfd_t;
 typedef struct poll_fd_node
@@ -110,7 +110,7 @@ static int server_setup(int svr_sock, uint16_t port)
 
     socklen_t server_addr_len = sizeof(struct sockaddr_in);
 
-    svr_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
+    svr_sock = socket(AF_INET, SOCK_STREAM | O_NONBLOCK, IPPROTO_IP);
 
     if (ERROR == svr_sock)
     {
@@ -151,7 +151,7 @@ static int server_setup(int svr_sock, uint16_t port)
 
     // Listen on that socket
 
-    err_code = listen(svr_sock, (CAPACITY * 2));
+    err_code = listen(svr_sock, CAPACITY);
 
     if (E_SUCCESS != err_code)
     {
@@ -193,7 +193,7 @@ static int server_setup(int svr_sock, uint16_t port)
         }
 
         if ((0 != (curr_node->flag & CLIENT_LIST_FULL)) &&
-            (NULL == curr_node->next) &&
+            (poll_list.head == curr_node->next) &&
             (MAX_CLIENT_LISTS >= curr_node->position))
         {
             err_code = create_new_node(&poll_list, svr_sock);
@@ -246,7 +246,7 @@ static int create_new_node(poll_fd_list_t * poll_list, int server_fd)
 
         new_node->position       = 0;
         new_node->flag           = CLIENT_LIST_NOFULL;
-        new_node->active_clients = 0;
+        new_node->active_clients = 1;
         memset(&new_node->client_list, 0, sizeof(new_node->client_list));
         new_node->client_list[0].fd      = server_fd;
         new_node->client_list[0].events  = POLLIN;
@@ -256,8 +256,7 @@ static int create_new_node(poll_fd_list_t * poll_list, int server_fd)
         poll_list->tail = new_node;
 
         poll_list->tail->next = poll_list->head;
-        printf("Running");
-        err_code = E_SUCCESS;
+        err_code              = E_SUCCESS;
 
         goto EXIT;
     }
@@ -269,18 +268,18 @@ static int create_new_node(poll_fd_list_t * poll_list, int server_fd)
         curr_node = curr_node->next;
     }
 
-    curr_node->next = (poll_fd_node_t *)calloc(1, sizeof(poll_fd_node_t));
+    new_node = (poll_fd_node_t *)calloc(1, sizeof(poll_fd_node_t));
 
-    if (NULL == curr_node->next)
+    if (NULL == new_node)
     {
         DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
 
         goto EXIT;
     }
 
-    new_node->position       = 0;
+    new_node->position       = (curr_node->position + 1);
     new_node->flag           = CLIENT_LIST_NOFULL;
-    new_node->active_clients = 0;
+    new_node->active_clients = 1;
     memset(&new_node->client_list, 0, sizeof(new_node->client_list));
     new_node->client_list[0].fd      = server_fd,
     new_node->client_list[0].events  = POLLIN,
@@ -329,17 +328,18 @@ static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
 
     for (uint64_t idx = 0; client_list_node->active_clients > idx; idx++)
     {
-        if (0 >= client_list_node->client_list[idx].fd)
-        {
-            continue;
-        }
-
         if (client_list_node->active_clients == CAPACITY)
         {
             client_list_node->flag =
                 (client_list_node->flag | CLIENT_LIST_FULL);
 
-            break;
+            err_code = E_SUCCESS;
+
+            goto EXIT;
+        }
+        if (0 >= client_list_node->client_list[idx].fd)
+        {
+            continue;
         }
 
         if ((client_list_node->client_list[idx].revents & POLLIN) == POLLIN)
@@ -360,17 +360,34 @@ static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
 
                 client_list_node->active_clients++;
 
-                client_list_node->client_list[(idx + 1)].fd      = client_fd;
-                client_list_node->client_list[(idx + 1)].events  = POLLIN;
-                client_list_node->client_list[(idx + 1)].revents = 0;
+                client_list_node
+                    ->client_list[(idx +
+                                   (client_list_node->active_clients - 1))]
+                    .fd = client_fd;
+                client_list_node
+                    ->client_list[(idx +
+                                   (client_list_node->active_clients - 1))]
+                    .events = POLLIN;
+                client_list_node
+                    ->client_list[(idx +
+                                   (client_list_node->active_clients - 1))]
+                    .revents = 0;
+                printf("\n\nClients active in section #%hu: %lu\n\n",
+                       client_list_node->position,
+                       client_list_node->active_clients);
+                fcntl(client_list_node->client_list[(idx + 1)].fd,
+                      F_SETFD,
+                      O_NONBLOCK);
             }
             else
             {
-                fcntl(
-                    client_list_node->client_list[idx].fd, F_SETFD, O_NONBLOCK);
-
                 session_driver(client_list_node->client_list[idx].fd,
                                &con_exit);
+
+                if (EXIT_SUCCESS == con_exit)
+                {
+                    client_list_node->client_list[idx].fd *= -1;
+                }
             }
         }
     }
