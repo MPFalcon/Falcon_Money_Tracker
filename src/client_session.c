@@ -35,21 +35,12 @@ void session_driver(int client, int * con_exit)
         goto EXIT;
     }
 
-    char name[255];
+    meta_data_t meta_data = { 0 };
 
-    // fcntl(client, F_SETFD, O_NONBLOCK);
+    meta_data.msg_len = snprintf(
+        meta_data.msg, MAX_MSG_LEN, "\n\nHello, Client #%d\n\n", client);
 
-    meta_data_t   meta_data = { 0 };
-
-    for (;;)
-    {
-        if (SIGNAL_IDLE != signal_flag_g)
-        {
-            print_to_client(meta_data, client, "Server Has Shut Down");
-
-            break;
-        }
-    }
+    print_to_client(meta_data, client, meta_data.msg);
 
     close(client);
     *con_exit = EXIT_SUCCESS;

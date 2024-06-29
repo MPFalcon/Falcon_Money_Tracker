@@ -9,11 +9,11 @@
 typedef struct pollfd pollfd_t;
 typedef struct poll_fd_node
 {
-    uint16_t position;
-    uint8_t  flag;
-    uint64_t active_clients;
-    pollfd_t client_list[BACKLOG_CAPACITY];
-    struct   poll_fd_node * next;
+    uint16_t              position;
+    uint8_t               flag;
+    uint64_t              active_clients;
+    pollfd_t              client_list[BACKLOG_CAPACITY];
+    struct poll_fd_node * next;
 } poll_fd_node_t;
 typedef struct poll_fd_list
 {
@@ -31,6 +31,28 @@ typedef struct poll_fd_list
  *                      FAILURE: 1
  */
 static int server_setup(int svr_sock, uint16_t port);
+
+/**
+ * @brief               Create a new poll section
+ *
+ * @param poll_list     Valid poll list instance
+ * @param server_fd     Server file descriptor
+ *
+ * @return              SUCCESS: 0
+ *                      FAILURE: 1
+ */
+static int create_new_node(poll_fd_list_t * poll_list, int server_fd);
+
+/**
+ * @brief                   Iterate through poll section
+ *
+ * @param client_list_node  Valid poll section instance
+ * @param server_fd         Server file descriptor
+ *
+ * @return                  SUCCESS: 0
+ *                          FAILURE: 1
+ */
+static int list_iteration(poll_fd_node_t * client_list_node, int server_fd);
 
 /**
  * @brief               Properly and gracefully shut down server and
@@ -76,14 +98,11 @@ static int server_setup(int svr_sock, uint16_t port)
 {
     int err_code = E_FAILURE;
 
-    poll_fd_list_t poll_list = {
-        .head = NULL,
-        .tail = NULL
-    };
+    poll_fd_list_t poll_list = { .head = NULL, .tail = NULL };
 
     struct sockaddr_in server_skt_t;
 
-    int opt      = 1;
+    int opt = 1;
 
     socklen_t server_addr_len = sizeof(struct sockaddr_in);
 
@@ -147,19 +166,20 @@ static int server_setup(int svr_sock, uint16_t port)
         goto EXIT;
     }
 
-    poll_list.head->position = 0;
-    poll_list.head->flag = CLIENT_LIST_NOFULL;
-    poll_list.head->active_clients = 0;
-    memset(poll_list.head->client_list, -1, (BACKLOG_CAPACITY * sizeof(pollfd_t)));
-    poll_list.head->client_list[0].fd = svr_sock,
-    poll_list.head->client_list[0].events = POLLIN,
-    poll_list.head->client_list[0].revents = 0,
-    poll_list.tail = poll_list.head;
-    poll_list.head->next = poll_list.tail;
+    err_code = create_new_node(&poll_list, svr_sock);
+
+    if (E_SUCCESS != err_code)
+    {
+        DEBUG_PRINT(
+            "\n\nERROR [x]  Error occurred at create_new_node(): %s\n\n",
+            __func__);
+
+        goto EXIT;
+    }
 
     poll_fd_node_t * curr_node = poll_list.head;
 
-    for(;;)
+    for (;;)
     {
         if (SIGNAL_IDLE != signal_flag_g)
         {
@@ -170,18 +190,25 @@ static int server_setup(int svr_sock, uint16_t port)
 
         if (E_SUCCESS != err_code)
         {
-            DEBUG_PRINT("\n\nERROR [x]  Error occurred at list_iteration(): %s\n\n", __func__);
+            DEBUG_PRINT(
+                "\n\nERROR [x]  Error occurred at list_iteration(): %s\n\n",
+                __func__);
 
             goto EXIT;
         }
 
-        if ((0 != (curr_node->flag & CLIENT_LIST_FULL)) && (NULL == curr_node->next) && (MAX_CLIENT_LISTS >= curr_node->position))
+        if ((0 != (curr_node->flag & CLIENT_LIST_FULL)) &&
+            (NULL == curr_node->next) &&
+            (MAX_CLIENT_LISTS >= curr_node->position))
         {
-            err_code = create_new_node(&poll_list);
+            err_code = create_new_node(&poll_list, svr_sock);
 
             if (E_SUCCESS != err_code)
             {
-                DEBUG_PRINT("\n\nERROR [x]  Error occurred at create_new_node(): %s\n\n", __func__);
+                DEBUG_PRINT(
+                    "\n\nERROR [x]  Error occurred at create_new_node(): "
+                    "%s\n\n",
+                    __func__);
 
                 goto EXIT;
             }
@@ -197,7 +224,7 @@ EXIT:
     return err_code;
 }
 
-static int create_new_node(poll_fd_list_t * poll_list)
+static int create_new_node(poll_fd_list_t * poll_list, int server_fd)
 {
     int err_code = E_FAILURE;
 
@@ -208,7 +235,53 @@ static int create_new_node(poll_fd_list_t * poll_list)
         goto EXIT;
     }
 
+    if (NULL == poll_list->head)
+    {
+        poll_list->head->position       = 0;
+        poll_list->head->flag           = CLIENT_LIST_NOFULL;
+        poll_list->head->active_clients = 0;
+        memset(poll_list->head->client_list,
+               -1,
+               (BACKLOG_CAPACITY * sizeof(pollfd_t)));
+        poll_list->head->client_list[0].fd      = server_fd;
+        poll_list->head->client_list[0].events  = POLLIN;
+        poll_list->head->client_list[0].revents = 0;
+        poll_list->tail                         = poll_list->head;
+        poll_list->tail->next                   = poll_list->head;
 
+        err_code = E_SUCCESS;
+
+        goto EXIT;
+    }
+
+    poll_fd_node_t * curr_node = poll_list->head;
+
+    while (poll_list->tail != curr_node->next)
+    {
+        curr_node = curr_node->next;
+    }
+
+    curr_node->next = (poll_fd_node_t *)calloc(1, sizeof(poll_fd_list_t));
+
+    if (NULL == curr_node->next)
+    {
+        DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
+
+        goto EXIT;
+    }
+
+    curr_node->next->position       = 0;
+    curr_node->next->flag           = CLIENT_LIST_NOFULL;
+    curr_node->next->active_clients = 0;
+    memset(curr_node->next->client_list,
+           -1,
+           (BACKLOG_CAPACITY * sizeof(pollfd_t)));
+    curr_node->next->client_list[0].fd      = server_fd,
+    curr_node->next->client_list[0].events  = POLLIN,
+    curr_node->next->client_list[0].revents = 0;
+
+    poll_list->tail       = poll_list->head;
+    poll_list->tail->next = poll_list->head;
 
     err_code = E_SUCCESS;
 
@@ -219,9 +292,9 @@ EXIT:
 
 static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
 {
-    int err_code = E_FAILURE;
+    int err_code  = E_FAILURE;
     int client_fd = 0;
-    int con_exit = EXIT_FAILURE;
+    int con_exit  = EXIT_FAILURE;
 
     struct sockaddr_in client_skt_t;
 
@@ -234,9 +307,14 @@ static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
         goto EXIT;
     }
 
-    if (poll(client_list_node->client_list, client_list_node->active_clients, -1) == -1)
+    if (poll(client_list_node->client_list,
+             client_list_node->active_clients,
+             -1) == -1)
     {
-        DEBUG_PRINT("\n\nERROR [x]  Error occurred at poll() in section #%hu: %s\n\n", client_list_node->position, __func__);
+        DEBUG_PRINT(
+            "\n\nERROR [x]  Error occurred at poll() in section #%hu: %s\n\n",
+            client_list_node->position,
+            __func__);
 
         goto EXIT;
     }
@@ -247,39 +325,44 @@ static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
         {
             continue;
         }
-    
+
         if (client_list_node->active_clients == BACKLOG_CAPACITY)
         {
-            client_list_node->flag = (client_list_node->flag | CLIENT_LIST_FULL);
+            client_list_node->flag =
+                (client_list_node->flag | CLIENT_LIST_FULL);
 
             break;
         }
-    
+
         if ((client_list_node->client_list[idx].revents & POLLIN) == POLLIN)
         {
             if (server_fd == client_list_node->client_list[idx].fd)
             {
-                if(ERROR == (client_fd = accept(server_fd,
+                if (ERROR ==
+                    (client_fd = accept(server_fd,
                                         (struct sockaddr *)&client_skt_t,
                                         &client_addr_len)))
                 {
-                    DEBUG_PRINT("\n\nERROR [x]  Failed to accept client: %s\n\n",
-                    __func__);
+                    DEBUG_PRINT(
+                        "\n\nERROR [x]  Failed to accept client: %s\n\n",
+                        __func__);
 
                     continue;
                 }
 
                 client_list_node->active_clients++;
 
-                client_list_node->client_list[(idx + 1)].fd = client_fd;
-                client_list_node->client_list[(idx + 1)].events = POLLIN;
+                client_list_node->client_list[(idx + 1)].fd      = client_fd;
+                client_list_node->client_list[(idx + 1)].events  = POLLIN;
                 client_list_node->client_list[(idx + 1)].revents = 0;
             }
             else
             {
-                fcntl(client_list_node->client_list[idx].fd, F_SETFD, O_NONBLOCK);
+                fcntl(
+                    client_list_node->client_list[idx].fd, F_SETFD, O_NONBLOCK);
 
-                session_driver(client_list_node->client_list[idx].fd, &con_exit);
+                session_driver(client_list_node->client_list[idx].fd,
+                               &con_exit);
             }
         }
     }

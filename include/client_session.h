@@ -16,11 +16,12 @@ typedef struct __attribute__((packed)) INSTRUCTION_HEADER
 } instruction_hdr_t;
 
 /**
- * @brief               Spin up session for new client
+ * @brief           Spin up session for new client
  *
- * @param thread_count  Valid client instance
+ * @param client    Client socket
+ * @param con_exit  Lets server know if client successfully exited session
  */
-void session_driver(int client);
+void session_driver(int client, int * con_exit);
 
 #endif /* CLIENT_SESSION_H */
 
