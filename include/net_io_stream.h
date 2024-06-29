@@ -6,6 +6,7 @@
 
 #ifndef NET_IO_STREAM_H
 #    define NET_IO_STREAM_H
+#    define _GNU_SOURCE
 
 #    include <netinet/in.h>
 #    include <poll.h>

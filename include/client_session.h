@@ -19,9 +19,8 @@ typedef struct __attribute__((packed)) INSTRUCTION_HEADER
  * @brief           Spin up session for new client
  *
  * @param client    Client socket
- * @param con_exit  Lets server know if client successfully exited session
  */
-void session_driver(int client, int * con_exit);
+void session_driver(int client);
 
 #endif /* CLIENT_SESSION_H */
 

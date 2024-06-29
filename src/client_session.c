@@ -1,7 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-
 #include "client_session.h"
 
 #define MAX_MSG_LEN   4098
@@ -26,27 +22,18 @@ static void print_to_client(meta_data_t  meta_data,
                             int          client,
                             const char * p_msg);
 
-void session_driver(int client, int * con_exit)
+void session_driver(int client)
 {
-    if (NULL == con_exit)
-    {
-        DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
-
-        goto EXIT;
-    }
-
     printf("\n\nClient #%d Connected\n\n", client);
 
-    meta_data_t meta_data = { 0 };
+    meta_data_t meta_data = {
+        .bytes_received = 0, .bytes_sent = 0, .msg_len = 0, .msg = { 0 }
+    };
 
     meta_data.msg_len = snprintf(
         meta_data.msg, MAX_MSG_LEN, "\n\nHello, Client #%d\n\n", client);
 
     print_to_client(meta_data, client, meta_data.msg);
-
-    //*con_exit = EXIT_SUCCESS;
-
-EXIT:
 
     return;
 }

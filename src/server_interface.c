@@ -126,8 +126,8 @@ static int server_setup(int svr_sock, uint16_t port)
 
     // Ensure address and socket can be used again
 
-    err_code =
-        setsockopt(svr_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    err_code = setsockopt(
+        svr_sock, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt));
 
     if (E_SUCCESS != err_code)
     {
@@ -297,11 +297,27 @@ EXIT:
     return err_code;
 }
 
+static int connection_still_alive(int fd)
+{
+    int  err_code = E_FAILURE;
+    char buffer[1];
+
+    if (recv(fd, buffer, sizeof(buffer), MSG_PEEK | MSG_DONTWAIT) == 0)
+    {
+        goto EXIT;
+    }
+
+    err_code = E_SUCCESS;
+
+EXIT:
+
+    return err_code;
+}
+
 static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
 {
     int err_code  = E_FAILURE;
     int client_fd = 0;
-    int con_exit  = EXIT_FAILURE;
 
     uint64_t new_client_idx = 0;
 
@@ -318,7 +334,7 @@ static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
 
     if (poll(client_list_node->client_list,
              client_list_node->active_clients,
-             -1) == -1)
+             1) == -1)
     {
         DEBUG_PRINT(
             "\n\nERROR [x]  Error occurred at poll() in section #%hu: %s\n\n",
@@ -378,16 +394,15 @@ static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
                       F_SETFD,
                       O_NONBLOCK);
 
-                session_driver(client_list_node->client_list[new_client_idx].fd,
-                               &con_exit);
-
-                if (EXIT_SUCCESS == con_exit)
-                {
-                }
+                session_driver(
+                    client_list_node->client_list[new_client_idx].fd);
             }
             else
             {
-                if (POLLOUT == client_list_node->client_list[idx].revents)
+                err_code = connection_still_alive(
+                    client_list_node->client_list[idx].fd);
+
+                if (E_FAILURE == err_code)
                 {
                     printf("\n\nClient #%d left\n\n",
                            client_list_node->client_list[idx].fd);
