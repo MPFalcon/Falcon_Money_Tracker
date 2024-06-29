@@ -1,11 +1,9 @@
 #include "client_session.h"
 
-#define MAX_MSG_LEN  4098
 #define MAX_BANK_LEN 200
 #define MAX_NAME_LEN 50
 #define MAX_PASS_LEN 100
 
-#define AUTH_CLIENT       0xfeb4593fecc67839ULL
 #define TERMINATE_SESSION 0xffff
 
 #define CLIENT_ACTIVE 1
@@ -33,13 +31,6 @@ typedef enum instruction_codes
     UPDATE_BANK    = 0x6582,
     UPDATE_BALANCE = 0x2239
 } instruction_codes_t;
-typedef struct net_meta_data
-{
-    ssize_t bytes_received;
-    ssize_t bytes_sent;
-    ssize_t msg_len;
-    char    msg[MAX_MSG_LEN];
-} meta_data_t;
 
 /**
  * @brief           Print to client
@@ -75,25 +66,11 @@ void session_welcome(int client)
 
 bool session_menu_active(int client)
 {
-    // if (NULL == event_occurred)
-    // {
-    //     goto EXIT;
-    // }
-    bool     session_active      = true;
-    uint64_t authorization_token = 0;
+    bool session_active = true;
 
     meta_data_t meta_data = {
         .bytes_received = 0, .bytes_sent = 0, .msg_len = 0, .msg = { 0 }
     };
-
-    meta_data.bytes_received =
-        receive_bytes(client, &authorization_token, sizeof(uint64_t));
-
-    if ((ERROR == meta_data.bytes_received) ||
-        (AUTH_CLIENT != authorization_token))
-    {
-        goto EXIT;
-    }
 
     instruction_hdr_t * instruction_set =
         receive_instructions(client, meta_data);

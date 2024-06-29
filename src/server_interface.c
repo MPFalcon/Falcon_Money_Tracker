@@ -5,7 +5,7 @@
 
 #define MAX_CLIENT_LISTS 10
 #define CAPACITY         10
-#define TIMEOUT_MS       500
+#define TIMEOUT_MS       -1
 
 typedef struct pollfd pollfd_t;
 typedef struct poll_fd_node
@@ -298,12 +298,28 @@ EXIT:
     return err_code;
 }
 
-static int connection_still_alive(int fd)
+static int connection_authorized(int fd)
 {
-    int  err_code = E_FAILURE;
-    char buffer[1];
+    int      err_code            = E_FAILURE;
+    uint64_t authorization_token = 0;
 
-    if (recv(fd, buffer, sizeof(buffer), (MSG_PEEK | MSG_DONTWAIT)) == 0)
+    meta_data_t meta_data = {
+        .bytes_received = 0, .bytes_sent = 0, .msg_len = 0, .msg = { 0 }
+    };
+
+    meta_data.bytes_received =
+        recv(fd, &authorization_token, sizeof(uint64_t), 0);
+
+    if (ERROR == meta_data.bytes_received)
+    {
+        goto EXIT;
+    }
+
+    (void)convert_endianess64(&authorization_token);
+
+    printf("\n\n%lx\n\n", authorization_token);
+
+    if (AUTH_CLIENT != authorization_token)
     {
         goto EXIT;
     }
@@ -378,6 +394,13 @@ static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
                     continue;
                 }
 
+                if (E_FAILURE == connection_authorized(client_fd))
+                {
+                    close(client_fd);
+
+                    continue;
+                }
+
                 client_list_node->active_clients++;
                 new_client_idx = (idx + (client_list_node->active_clients - 1));
 
@@ -385,15 +408,15 @@ static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
                 client_list_node->client_list[new_client_idx].events  = POLLIN;
                 client_list_node->client_list[new_client_idx].revents = 0;
 
+                fcntl(client_list_node->client_list[new_client_idx].fd,
+                      F_SETFD,
+                      O_NONBLOCK);
+
                 printf(
                     "\n\nClients active on server #%d in section #%hu: %lu\n\n",
                     server_fd,
                     client_list_node->position,
                     client_list_node->active_clients);
-
-                fcntl(client_list_node->client_list[new_client_idx].fd,
-                      F_SETFD,
-                      O_NONBLOCK);
 
                 session_welcome(
                     client_list_node->client_list[new_client_idx].fd);

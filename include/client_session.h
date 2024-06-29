@@ -9,6 +9,8 @@
 
 #    include "net_io_stream.h"
 
+#    define AUTH_CLIENT 0xfeb4593fecc67839ULL
+
 typedef struct __attribute__((packed)) INSTRUCTION_HEADER
 {
     uint16_t op_code;

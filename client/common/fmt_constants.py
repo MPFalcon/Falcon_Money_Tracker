@@ -1,4 +1,5 @@
 from socket import *
+from struct import *
 
 SUCCESS = 0
 FAILURE = 1
@@ -20,3 +21,4 @@ REMOVE_BANK    = 0xcc91
 REMOVE_BALANCE = 0xff43
 UPDATE_BANK    = 0x6582
 UPDATE_BALANCE = 0x2239
+
