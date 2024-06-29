@@ -4,7 +4,7 @@
 #define CLIENT_LIST_FULL   0x1
 
 #define MAX_CLIENT_LISTS 10
-#define BACKLOG_CAPACITY 20
+#define CAPACITY         1
 
 typedef struct pollfd pollfd_t;
 typedef struct poll_fd_node
@@ -12,7 +12,7 @@ typedef struct poll_fd_node
     uint16_t              position;
     uint8_t               flag;
     uint64_t              active_clients;
-    pollfd_t              client_list[BACKLOG_CAPACITY];
+    pollfd_t              client_list[CAPACITY];
     struct poll_fd_node * next;
 } poll_fd_node_t;
 typedef struct poll_fd_list
@@ -151,21 +151,12 @@ static int server_setup(int svr_sock, uint16_t port)
 
     // Listen on that socket
 
-    err_code = listen(svr_sock, (BACKLOG_CAPACITY * 2));
+    err_code = listen(svr_sock, (CAPACITY * 2));
 
     if (E_SUCCESS != err_code)
     {
         DEBUG_PRINT("\n\nERROR [x] Failed to set up listener: %s\n\n",
                     __func__);
-
-        goto EXIT;
-    }
-
-    poll_list.head = (poll_fd_node_t *)calloc(1, sizeof(poll_fd_list_t));
-
-    if (NULL == poll_list.head)
-    {
-        DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
 
         goto EXIT;
     }
@@ -243,7 +234,7 @@ static int create_new_node(poll_fd_list_t * poll_list, int server_fd)
 
     if (NULL == poll_list->head)
     {
-        new_node = (poll_fd_node_t *)calloc(1, sizeof(poll_fd_list_t));
+        new_node = (poll_fd_node_t *)calloc(1, sizeof(poll_fd_node_t));
 
         if (NULL == new_node)
         {
@@ -256,9 +247,7 @@ static int create_new_node(poll_fd_list_t * poll_list, int server_fd)
         new_node->position       = 0;
         new_node->flag           = CLIENT_LIST_NOFULL;
         new_node->active_clients = 0;
-        memset(new_node->client_list,
-               0,
-               (BACKLOG_CAPACITY * sizeof(pollfd_t)));
+        memset(&new_node->client_list, 0, sizeof(new_node->client_list));
         new_node->client_list[0].fd      = server_fd;
         new_node->client_list[0].events  = POLLIN;
         new_node->client_list[0].revents = 0;
@@ -267,7 +256,7 @@ static int create_new_node(poll_fd_list_t * poll_list, int server_fd)
         poll_list->tail = new_node;
 
         poll_list->tail->next = poll_list->head;
-
+        printf("Running");
         err_code = E_SUCCESS;
 
         goto EXIT;
@@ -280,7 +269,7 @@ static int create_new_node(poll_fd_list_t * poll_list, int server_fd)
         curr_node = curr_node->next;
     }
 
-    curr_node->next = (poll_fd_node_t *)calloc(1, sizeof(poll_fd_list_t));
+    curr_node->next = (poll_fd_node_t *)calloc(1, sizeof(poll_fd_node_t));
 
     if (NULL == curr_node->next)
     {
@@ -289,17 +278,17 @@ static int create_new_node(poll_fd_list_t * poll_list, int server_fd)
         goto EXIT;
     }
 
-    curr_node->next->position       = 0;
-    curr_node->next->flag           = CLIENT_LIST_NOFULL;
-    curr_node->next->active_clients = 0;
-    memset(curr_node->next->client_list,
-           -1,
-           (BACKLOG_CAPACITY * sizeof(pollfd_t)));
-    curr_node->next->client_list[0].fd      = server_fd,
-    curr_node->next->client_list[0].events  = POLLIN,
-    curr_node->next->client_list[0].revents = 0;
+    new_node->position       = 0;
+    new_node->flag           = CLIENT_LIST_NOFULL;
+    new_node->active_clients = 0;
+    memset(&new_node->client_list, 0, sizeof(new_node->client_list));
+    new_node->client_list[0].fd      = server_fd,
+    new_node->client_list[0].events  = POLLIN,
+    new_node->client_list[0].revents = 0;
 
-    poll_list->tail       = curr_node->next;
+    curr_node->next = new_node;
+
+    poll_list->tail       = new_node;
     poll_list->tail->next = poll_list->head;
 
     err_code = E_SUCCESS;
@@ -345,7 +334,7 @@ static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
             continue;
         }
 
-        if (client_list_node->active_clients == BACKLOG_CAPACITY)
+        if (client_list_node->active_clients == CAPACITY)
         {
             client_list_node->flag =
                 (client_list_node->flag | CLIENT_LIST_FULL);
