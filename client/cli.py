@@ -1,5 +1,5 @@
 import argparse
-from fmt_constants import *
+from common.fmt_constants import *
 
 MIN_PORT_RANGE  = 1024
 MAX_PORT_RANGE  = 65535
