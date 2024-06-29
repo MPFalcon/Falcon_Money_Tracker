@@ -394,7 +394,7 @@ static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
                       F_SETFD,
                       O_NONBLOCK);
 
-                session_driver(
+                session_welcome(
                     client_list_node->client_list[new_client_idx].fd);
             }
             else
@@ -409,8 +409,9 @@ static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
                     close(client_list_node->client_list[idx].fd);
                     client_list_node->client_list[idx].fd *= -1;
                 }
+
+                session_menu(client_list_node->client_list[idx].fd);
             }
-            // Add session menu here
         }
     }
 

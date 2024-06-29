@@ -16,11 +16,18 @@ typedef struct __attribute__((packed)) INSTRUCTION_HEADER
 } instruction_hdr_t;
 
 /**
- * @brief           Spin up session for new client
+ * @brief           Welcome new client
  *
  * @param client    Client socket
  */
-void session_driver(int client);
+void session_welcome(int client);
+
+/**
+ * @brief           Await instructions from the user
+ * 
+ * @param client    Client socket
+ */
+void session_menu(int client);
 
 #endif /* CLIENT_SESSION_H */
 
