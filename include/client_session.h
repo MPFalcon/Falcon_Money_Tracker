@@ -24,7 +24,7 @@ void session_welcome(int client);
 
 /**
  * @brief           Await instructions from the user
- * 
+ *
  * @param client    Client socket
  */
 void session_menu(int client);

@@ -1,23 +1,22 @@
 #include "client_session.h"
 
-#define MAX_MSG_LEN   4098
-#define MAX_BANK_LEN  200
-#define MAX_NAME_LEN  50
-#define MAX_PASS_LEN  100
+#define MAX_MSG_LEN  4098
+#define MAX_BANK_LEN 200
+#define MAX_NAME_LEN 50
+#define MAX_PASS_LEN 100
 
 #define TIMEOUT_MS    1000
 #define CLIENT_ACTIVE 1
-
-typedef struct asociated_bank
+typedef struct associated_bank
 {
-    char bank_name[MAX_BANK_LEN];
+    char      bank_name[MAX_BANK_LEN];
     u_int64_t balance;
 } bank_t;
 typedef struct profile
 {
     uint64_t profile_id;
-    char username[MAX_NAME_LEN];
-    char password[MAX_PASS_LEN];
+    char     username[MAX_NAME_LEN];
+    char     password[MAX_PASS_LEN];
     bank_t * banks;
 } profile_t;
 typedef enum instruction_codes
@@ -51,10 +50,15 @@ static void print_to_client(meta_data_t  meta_data,
                             int          client,
                             const char * p_msg);
 
+static instruction_hdr_t * receive_instructions(int         client,
+                                                meta_data_t meta_data);
+
+static int send_instructions(int                 client,
+                             meta_data_t         meta_data,
+                             instruction_hdr_t * instructions);
+
 void session_welcome(int client)
 {
-    printf("\n\nClient #%d Connected\n\n", client);
-
     meta_data_t meta_data = {
         .bytes_received = 0, .bytes_sent = 0, .msg_len = 0, .msg = { 0 }
     };
@@ -67,20 +71,41 @@ void session_welcome(int client)
     return;
 }
 
-void session_welcome(int client)
+void session_menu(int client)
 {
-    printf("\n\nClient #%d Connected\n\n", client);
+    instruction_hdr_t * instruction_set = NULL;
 
     meta_data_t meta_data = {
         .bytes_received = 0, .bytes_sent = 0, .msg_len = 0, .msg = { 0 }
     };
 
-    meta_data.msg_len = snprintf(
-        meta_data.msg, MAX_MSG_LEN, "\n\nHello, Client #%d\n\n", client);
+    print_to_client(meta_data, client, "\n\nWhat do you want to do\n\n");
 
-    print_to_client(meta_data, client, meta_data.msg);
+    instruction_set = receive_instructions(client, meta_data);
 
     return;
+}
+
+static instruction_hdr_t * receive_instructions(int         client,
+                                                meta_data_t meta_data)
+{
+    instruction_hdr_t * new_instructions = NULL;
+
+    meta_data.bytes_received =
+        receive_bytes(client, new_instructions, sizeof(instruction_hdr_t));
+
+    if (ERROR == meta_data.bytes_received)
+    {
+        print_to_client(meta_data,
+                        client,
+                        "\n\nSomething went wrong, please try again\n\n");
+
+        goto EXIT;
+    }
+
+EXIT:
+
+    return new_instructions;
 }
 
 static void print_to_client(meta_data_t  meta_data,
