@@ -1,0 +1,22 @@
+from socket import *
+
+SUCCESS = 0
+FAILURE = 1
+
+MAX_MSG_LEN  = 4098
+MAX_BANK_LEN = 200
+MAX_NAME_LEN = 50
+MAX_PASS_LEN = 100
+
+AUTH_CLIENT       = 0xfeb4593fecc67839
+TERMINATE_SESSION = 0xffffffff
+
+RECV_READY     = 0x12df
+SEND_READY     = 0x12ab
+LOGIN          = 0xccdf
+ADD_BANK       = 0xdadf
+ADD_BALANCE    = 0x2394
+REMOVE_BANK    = 0xcc91
+REMOVE_BALANCE = 0xff43
+UPDATE_BANK    = 0x6582
+UPDATE_BALANCE = 0x2239

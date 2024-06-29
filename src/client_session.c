@@ -6,7 +6,7 @@
 #define MAX_PASS_LEN 100
 
 #define AUTH_CLIENT       0xfeb4593fecc67839ULL
-#define TERMINATE_SESSION 0xffffffff
+#define TERMINATE_SESSION 0xffff
 
 #define CLIENT_ACTIVE 1
 typedef struct associated_bank
@@ -79,13 +79,24 @@ bool session_menu_active(int client)
     // {
     //     goto EXIT;
     // }
-    bool session_active = true;
+    bool     session_active      = true;
+    uint64_t authorization_token = 0;
 
     meta_data_t meta_data = {
         .bytes_received = 0, .bytes_sent = 0, .msg_len = 0, .msg = { 0 }
     };
 
-    instruction_hdr_t * instruction_set = receive_instructions(client, meta_data);
+    meta_data.bytes_received =
+        receive_bytes(client, &authorization_token, sizeof(uint64_t));
+
+    if ((ERROR == meta_data.bytes_received) ||
+        (AUTH_CLIENT != authorization_token))
+    {
+        goto EXIT;
+    }
+
+    instruction_hdr_t * instruction_set =
+        receive_instructions(client, meta_data);
 
     if (NULL == instruction_set)
     {
@@ -96,39 +107,30 @@ bool session_menu_active(int client)
     {
         case RECV_READY:
 
-            
             break;
         case SEND_READY:
 
-            
             break;
         case LOGIN:
 
-            
             break;
         case ADD_BANK:
 
-            
             break;
         case ADD_BALANCE:
 
-            
             break;
         case REMOVE_BANK:
 
-            
             break;
         case REMOVE_BALANCE:
 
-            
             break;
         case UPDATE_BANK:
 
-            
             break;
         case UPDATE_BALANCE:
-        
-            
+
             break;
         default:
             goto EXIT;
