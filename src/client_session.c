@@ -44,8 +44,7 @@ void session_driver(int client, int * con_exit)
 
     print_to_client(meta_data, client, meta_data.msg);
 
-    close(client);
-    *con_exit = EXIT_SUCCESS;
+    //*con_exit = EXIT_SUCCESS;
 
 EXIT:
 
