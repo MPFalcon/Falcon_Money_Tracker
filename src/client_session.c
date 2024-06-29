@@ -1,9 +1,25 @@
 #include "client_session.h"
 
 #define MAX_MSG_LEN   4098
+#define MAX_BANK_LEN  200
+#define MAX_NAME_LEN  50
+#define MAX_PASS_LEN  100
+
 #define TIMEOUT_MS    1000
 #define CLIENT_ACTIVE 1
 
+typedef struct asociated_bank
+{
+    char bank_name[MAX_BANK_LEN];
+    u_int64_t balance;
+} bank_t;
+typedef struct profile
+{
+    uint64_t profile_id;
+    char username[MAX_NAME_LEN];
+    char password[MAX_PASS_LEN];
+    bank_t * banks;
+} profile_t;
 typedef enum instruction_codes
 {
     RECV_READY     = 0x12df,
