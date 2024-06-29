@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.16)
 
 project(money_track_server)
 
+include(debug.cmake)
+
 if (EXISTS "${CMAKE_CURRENT_LIST_DIR}/common/CMakeLists.txt")
     add_subdirectory(common)
 endif()

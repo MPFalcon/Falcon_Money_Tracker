@@ -76,6 +76,8 @@ int setup_driver(uint16_t port)
     {
         DEBUG_PRINT("\n\nERROR [x]  Error occurred in server_setup() : %s\n\n",
                     __func__);
+
+        goto EXIT;
     }
 
     err_code = server_shutdown(svr_sock);
@@ -85,6 +87,8 @@ int setup_driver(uint16_t port)
         DEBUG_PRINT(
             "\n\nERROR [x]  Error occurred in server_shutdown() : %s\n\n",
             __func__);
+
+        goto EXIT;
     }
 
     err_code = E_SUCCESS;
@@ -228,6 +232,8 @@ static int create_new_node(poll_fd_list_t * poll_list, int server_fd)
 {
     int err_code = E_FAILURE;
 
+    poll_fd_node_t * new_node = NULL;
+
     if (NULL == poll_list)
     {
         DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
@@ -237,17 +243,30 @@ static int create_new_node(poll_fd_list_t * poll_list, int server_fd)
 
     if (NULL == poll_list->head)
     {
-        poll_list->head->position       = 0;
-        poll_list->head->flag           = CLIENT_LIST_NOFULL;
-        poll_list->head->active_clients = 0;
-        memset(poll_list->head->client_list,
-               -1,
+        new_node = (poll_fd_node_t *)calloc(1, sizeof(poll_fd_list_t));
+
+        if (NULL == new_node)
+        {
+            DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n",
+                        __func__);
+
+            goto EXIT;
+        }
+
+        new_node->position       = 0;
+        new_node->flag           = CLIENT_LIST_NOFULL;
+        new_node->active_clients = 0;
+        memset(new_node->client_list,
+               0,
                (BACKLOG_CAPACITY * sizeof(pollfd_t)));
-        poll_list->head->client_list[0].fd      = server_fd;
-        poll_list->head->client_list[0].events  = POLLIN;
-        poll_list->head->client_list[0].revents = 0;
-        poll_list->tail                         = poll_list->head;
-        poll_list->tail->next                   = poll_list->head;
+        new_node->client_list[0].fd      = server_fd;
+        new_node->client_list[0].events  = POLLIN;
+        new_node->client_list[0].revents = 0;
+
+        poll_list->head = new_node;
+        poll_list->tail = new_node;
+
+        poll_list->tail->next = poll_list->head;
 
         err_code = E_SUCCESS;
 
@@ -256,7 +275,7 @@ static int create_new_node(poll_fd_list_t * poll_list, int server_fd)
 
     poll_fd_node_t * curr_node = poll_list->head;
 
-    while (poll_list->tail != curr_node->next)
+    while (poll_list->head != curr_node->next)
     {
         curr_node = curr_node->next;
     }
@@ -280,7 +299,7 @@ static int create_new_node(poll_fd_list_t * poll_list, int server_fd)
     curr_node->next->client_list[0].events  = POLLIN,
     curr_node->next->client_list[0].revents = 0;
 
-    poll_list->tail       = poll_list->head;
+    poll_list->tail       = curr_node->next;
     poll_list->tail->next = poll_list->head;
 
     err_code = E_SUCCESS;
@@ -319,7 +338,7 @@ static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
         goto EXIT;
     }
 
-    for (int idx = 0; client_list_node->active_clients > idx; idx++)
+    for (uint64_t idx = 0; client_list_node->active_clients > idx; idx++)
     {
         if (0 >= client_list_node->client_list[idx].fd)
         {
@@ -392,7 +411,7 @@ static int server_shutdown(int svr_sock)
 
     err_code = E_SUCCESS;
 
-EXIT:
+    // EXIT:
 
     return err_code;
 }
