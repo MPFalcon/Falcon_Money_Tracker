@@ -115,7 +115,7 @@ ssize_t send_bytes(int write_fd, void * buffer, ssize_t num_of_bytes)
         // JQR Item - 6.12.1 / For loop
         {
             total_bytes +=
-                send(write_fd, ((uint8_t *)buffer + total_bytes), 1, 0);
+                send(write_fd, ((uint8_t *)buffer + total_bytes), 1, O_NONBLOCK);
             // JQR Item - 6.8.3 /
 
             if (E_SUCCESS != errno)

@@ -26,8 +26,15 @@ static void print_to_client(meta_data_t  meta_data,
                             int          client,
                             const char * p_msg);
 
-void session_driver(int client)
+void session_driver(int client, int * con_exit)
 {
+    if (NULL == con_exit)
+    {
+        DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
+
+        goto EXIT;
+    }
+
     char name[255];
 
     // fcntl(client, F_SETFD, O_NONBLOCK);
@@ -45,6 +52,9 @@ void session_driver(int client)
     }
 
     close(client);
+    *con_exit = EXIT_SUCCESS;
+
+EXIT:
 
     return;
 }

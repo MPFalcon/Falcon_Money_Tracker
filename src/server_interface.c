@@ -17,7 +17,6 @@ typedef struct poll_fd_node
 } poll_fd_node_t;
 typedef struct poll_fd_list
 {
-    pollfd_t server_poll_fd;
     poll_fd_node_t * head;
     poll_fd_node_t * tail;
 } poll_fd_list_t;
@@ -78,9 +77,6 @@ static int server_setup(int svr_sock, uint16_t port)
     int err_code = E_FAILURE;
 
     poll_fd_list_t poll_list = {
-        .server_poll_fd.fd = svr_sock,
-        .server_poll_fd.events = POLLIN,
-        .server_poll_fd.revents = 0,
         .head = NULL,
         .tail = NULL
     };
@@ -154,8 +150,10 @@ static int server_setup(int svr_sock, uint16_t port)
     poll_list.head->position = 0;
     poll_list.head->flag = CLIENT_LIST_NOFULL;
     poll_list.head->active_clients = 0;
-    memset(&poll_list.server_poll_fd, 0, sizeof(pollfd_t));
-    memset(poll_list.head->client_list, 0, (BACKLOG_CAPACITY * sizeof(pollfd_t)));
+    memset(poll_list.head->client_list, -1, (BACKLOG_CAPACITY * sizeof(pollfd_t)));
+    poll_list.head->client_list[0].fd = svr_sock,
+    poll_list.head->client_list[0].events = POLLIN,
+    poll_list.head->client_list[0].revents = 0,
     poll_list.tail = poll_list.head;
     poll_list.head->next = poll_list.tail;
 
@@ -168,12 +166,7 @@ static int server_setup(int svr_sock, uint16_t port)
             break;
         }
 
-        if (poll(&poll_list.server_poll_fd, 1, -1) == -1)
-        {
-            break;
-        }
-
-        err_code = list_iteration(curr_node, &poll_list.server_poll_fd);
+        err_code = list_iteration(curr_node, svr_sock);
 
         if (E_SUCCESS != err_code)
         {
@@ -215,6 +208,8 @@ static int create_new_node(poll_fd_list_t * poll_list)
         goto EXIT;
     }
 
+
+
     err_code = E_SUCCESS;
 
 EXIT:
@@ -222,43 +217,69 @@ EXIT:
     return err_code;
 }
 
-static int list_iteration(poll_fd_node_t * client_list_node, pollfd_t * server_fd)
+static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
 {
     int err_code = E_FAILURE;
     int client_fd = 0;
+    int con_exit = EXIT_FAILURE;
 
     struct sockaddr_in client_skt_t;
 
     socklen_t client_addr_len = sizeof(struct sockaddr_in);
 
-    if ((NULL == client_list_node) || (NULL == server_fd))
+    if (NULL == client_list_node)
     {
         DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
 
         goto EXIT;
     }
 
-    for (int idx = 0; BACKLOG_CAPACITY > idx; idx++)
+    if (poll(client_list_node->client_list, client_list_node->active_clients, -1) == -1)
     {
+        DEBUG_PRINT("\n\nERROR [x]  Error occurred at poll() in section #%hu: %s\n\n", client_list_node->position, __func__);
+
+        goto EXIT;
+    }
+
+    for (int idx = 0; client_list_node->active_clients > idx; idx++)
+    {
+        if (0 >= client_list_node->client_list[idx].fd)
+        {
+            continue;
+        }
+    
         if (client_list_node->active_clients == BACKLOG_CAPACITY)
         {
             client_list_node->flag = (client_list_node->flag | CLIENT_LIST_FULL);
 
             break;
         }
-
-        if (0 >= client_list_node->client_list[idx].fd)
-        {
-            continue;
-        }
-
+    
         if ((client_list_node->client_list[idx].revents & POLLIN) == POLLIN)
         {
-            if(ERROR != (client_fd = accept(server_fd->fd,
+            if (server_fd == client_list_node->client_list[idx].fd)
+            {
+                if(ERROR == (client_fd = accept(server_fd,
                                         (struct sockaddr *)&client_skt_t,
                                         &client_addr_len)))
+                {
+                    DEBUG_PRINT("\n\nERROR [x]  Failed to accept client: %s\n\n",
+                    __func__);
+
+                    continue;
+                }
+
+                client_list_node->active_clients++;
+
+                client_list_node->client_list[(idx + 1)].fd = client_fd;
+                client_list_node->client_list[(idx + 1)].events = POLLIN;
+                client_list_node->client_list[(idx + 1)].revents = 0;
+            }
+            else
             {
-                
+                fcntl(client_list_node->client_list[idx].fd, F_SETFD, O_NONBLOCK);
+
+                session_driver(client_list_node->client_list[idx].fd, &con_exit);
             }
         }
     }
