@@ -417,20 +417,6 @@ static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
                     server_fd,
                     client_list_node->position,
                     client_list_node->active_clients);
-
-                session_welcome(
-                    client_list_node->client_list[new_client_idx].fd);
-
-                if (false ==
-                    session_menu_active(
-                        client_list_node->client_list[new_client_idx].fd))
-                {
-                    printf("\n\nClient #%d left\n\n",
-                           client_list_node->client_list[new_client_idx].fd);
-                    close(client_list_node->client_list[new_client_idx].fd);
-                    client_list_node->client_list[new_client_idx].fd *= -1;
-                    client_list_node->active_clients--;
-                }
             }
             else
             {
