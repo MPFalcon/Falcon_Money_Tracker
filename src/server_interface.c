@@ -5,6 +5,7 @@
 
 #define MAX_CLIENT_LISTS 10
 #define CAPACITY         3
+#define TIMEOUT_MS       1
 
 typedef struct pollfd pollfd_t;
 typedef struct poll_fd_node
@@ -302,7 +303,10 @@ static int connection_still_alive(int fd)
     int  err_code = E_FAILURE;
     char buffer[1];
 
-    if (recv(fd, buffer, sizeof(buffer), MSG_PEEK | MSG_DONTWAIT) == 0)
+    if (recv(fd,
+             buffer,
+             sizeof(buffer),
+             (MSG_PEEK | MSG_DONTWAIT | O_NONBLOCK)) == 0)
     {
         goto EXIT;
     }
@@ -316,8 +320,8 @@ EXIT:
 
 static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
 {
-    int err_code  = E_FAILURE;
-    int client_fd = 0;
+    int  err_code       = E_FAILURE;
+    int  client_fd      = 0;
 
     uint64_t new_client_idx = 0;
 
@@ -334,7 +338,7 @@ static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
 
     if (poll(client_list_node->client_list,
              client_list_node->active_clients,
-             1) == -1)
+             TIMEOUT_MS) == -1)
     {
         DEBUG_PRINT(
             "\n\nERROR [x]  Error occurred at poll() in section #%hu: %s\n\n",
@@ -408,6 +412,8 @@ static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
                            client_list_node->client_list[idx].fd);
                     close(client_list_node->client_list[idx].fd);
                     client_list_node->client_list[idx].fd *= -1;
+
+                    continue;
                 }
 
                 session_menu(client_list_node->client_list[idx].fd);

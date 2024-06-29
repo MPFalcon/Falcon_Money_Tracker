@@ -5,7 +5,6 @@
 #define MAX_NAME_LEN 50
 #define MAX_PASS_LEN 100
 
-#define TIMEOUT_MS    1000
 #define CLIENT_ACTIVE 1
 typedef struct associated_bank
 {
@@ -73,6 +72,11 @@ void session_welcome(int client)
 
 void session_menu(int client)
 {
+    // if (NULL == event_occurred)
+    // {
+    //     goto EXIT;
+    // }
+
     instruction_hdr_t * instruction_set = NULL;
 
     meta_data_t meta_data = {
@@ -82,6 +86,8 @@ void session_menu(int client)
     print_to_client(meta_data, client, "\n\nWhat do you want to do\n\n");
 
     instruction_set = receive_instructions(client, meta_data);
+
+//EXIT:
 
     return;
 }
