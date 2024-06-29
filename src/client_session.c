@@ -5,6 +5,9 @@
 #define MAX_NAME_LEN 50
 #define MAX_PASS_LEN 100
 
+#define AUTH_CLIENT       0xfeb4593fecc67839ULL
+#define TERMINATE_SESSION 0xffffffff
+
 #define CLIENT_ACTIVE 1
 typedef struct associated_bank
 {
@@ -70,26 +73,75 @@ void session_welcome(int client)
     return;
 }
 
-void session_menu(int client)
+bool session_menu_active(int client)
 {
     // if (NULL == event_occurred)
     // {
     //     goto EXIT;
     // }
-
-    instruction_hdr_t * instruction_set = NULL;
+    bool session_active = true;
 
     meta_data_t meta_data = {
         .bytes_received = 0, .bytes_sent = 0, .msg_len = 0, .msg = { 0 }
     };
 
-    print_to_client(meta_data, client, "\n\nWhat do you want to do\n\n");
+    instruction_hdr_t * instruction_set = receive_instructions(client, meta_data);
 
-    instruction_set = receive_instructions(client, meta_data);
+    if (NULL == instruction_set)
+    {
+        goto EXIT;
+    }
 
-//EXIT:
+    switch (instruction_set->op_code)
+    {
+        case RECV_READY:
 
-    return;
+            
+            break;
+        case SEND_READY:
+
+            
+            break;
+        case LOGIN:
+
+            
+            break;
+        case ADD_BANK:
+
+            
+            break;
+        case ADD_BALANCE:
+
+            
+            break;
+        case REMOVE_BANK:
+
+            
+            break;
+        case REMOVE_BALANCE:
+
+            
+            break;
+        case UPDATE_BANK:
+
+            
+            break;
+        case UPDATE_BALANCE:
+        
+            
+            break;
+        default:
+            goto EXIT;
+    }
+
+    if (instruction_set->op_code == TERMINATE_SESSION)
+    {
+        session_active = false;
+    }
+
+EXIT:
+
+    return session_active;
 }
 
 static instruction_hdr_t * receive_instructions(int         client,
@@ -102,10 +154,6 @@ static instruction_hdr_t * receive_instructions(int         client,
 
     if (ERROR == meta_data.bytes_received)
     {
-        print_to_client(meta_data,
-                        client,
-                        "\n\nSomething went wrong, please try again\n\n");
-
         goto EXIT;
     }
 

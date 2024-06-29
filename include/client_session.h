@@ -27,7 +27,7 @@ void session_welcome(int client);
  *
  * @param client         Client socket
  */
-void session_menu(int client);
+bool session_menu_active(int client);
 
 #endif /* CLIENT_SESSION_H */
 

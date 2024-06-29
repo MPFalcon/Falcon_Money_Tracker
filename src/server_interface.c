@@ -4,8 +4,8 @@
 #define CLIENT_LIST_FULL   0x1
 
 #define MAX_CLIENT_LISTS 10
-#define CAPACITY         3
-#define TIMEOUT_MS       1
+#define CAPACITY         10
+#define TIMEOUT_MS       500
 
 typedef struct pollfd pollfd_t;
 typedef struct poll_fd_node
@@ -303,10 +303,7 @@ static int connection_still_alive(int fd)
     int  err_code = E_FAILURE;
     char buffer[1];
 
-    if (recv(fd,
-             buffer,
-             sizeof(buffer),
-             (MSG_PEEK | MSG_DONTWAIT | O_NONBLOCK)) == 0)
+    if (recv(fd, buffer, sizeof(buffer), (MSG_PEEK | MSG_DONTWAIT)) == 0)
     {
         goto EXIT;
     }
@@ -320,8 +317,8 @@ EXIT:
 
 static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
 {
-    int  err_code       = E_FAILURE;
-    int  client_fd      = 0;
+    int err_code  = E_FAILURE;
+    int client_fd = 0;
 
     uint64_t new_client_idx = 0;
 
@@ -400,23 +397,29 @@ static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
 
                 session_welcome(
                     client_list_node->client_list[new_client_idx].fd);
+
+                if (false ==
+                    session_menu_active(
+                        client_list_node->client_list[new_client_idx].fd))
+                {
+                    printf("\n\nClient #%d left\n\n",
+                           client_list_node->client_list[new_client_idx].fd);
+                    close(client_list_node->client_list[new_client_idx].fd);
+                    client_list_node->client_list[new_client_idx].fd *= -1;
+                    client_list_node->active_clients--;
+                }
             }
             else
             {
-                err_code = connection_still_alive(
-                    client_list_node->client_list[idx].fd);
-
-                if (E_FAILURE == err_code)
+                if (false ==
+                    session_menu_active(client_list_node->client_list[idx].fd))
                 {
                     printf("\n\nClient #%d left\n\n",
                            client_list_node->client_list[idx].fd);
                     close(client_list_node->client_list[idx].fd);
                     client_list_node->client_list[idx].fd *= -1;
-
-                    continue;
+                    client_list_node->active_clients--;
                 }
-
-                session_menu(client_list_node->client_list[idx].fd);
             }
         }
     }
