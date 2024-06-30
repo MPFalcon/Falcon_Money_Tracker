@@ -4,8 +4,8 @@
 #define CLIENT_LIST_FULL   0x1
 
 #define MAX_CLIENT_LISTS 10
-#define CAPACITY         10
-#define TIMEOUT_MS       100
+#define CAPACITY         5
+#define TIMEOUT_MS       1
 
 typedef struct pollfd pollfd_t;
 typedef struct poll_fd_node
@@ -13,6 +13,9 @@ typedef struct poll_fd_node
     uint16_t              position;
     uint8_t               flag;
     uint64_t              active_clients;
+    uint64_t              enqueue_point;
+    uint64_t              next_available_spot;
+    uint64_t              available_spots[(CAPACITY - 1)];
     pollfd_t              client_list[CAPACITY];
     struct poll_fd_node * next;
 } poll_fd_node_t;
@@ -245,13 +248,16 @@ static int create_new_node(poll_fd_list_t * poll_list, int server_fd)
             goto EXIT;
         }
 
-        new_node->position       = 0;
-        new_node->flag           = CLIENT_LIST_NOFULL;
-        new_node->active_clients = 1;
-        memset(&new_node->client_list, -1, sizeof(new_node->client_list));
+        new_node->position            = 0;
+        new_node->flag                = CLIENT_LIST_NOFULL;
+        new_node->active_clients      = 1;
+        new_node->enqueue_point       = 1;
+        new_node->next_available_spot = 0;
+        memset(&new_node->client_list, -1, (CAPACITY * sizeof(pollfd_t)));
         new_node->client_list[0].fd      = server_fd;
         new_node->client_list[0].events  = POLLIN;
         new_node->client_list[0].revents = 0;
+        new_node->available_spots[0]     = 1;
 
         poll_list->head = new_node;
         poll_list->tail = new_node;
@@ -278,13 +284,16 @@ static int create_new_node(poll_fd_list_t * poll_list, int server_fd)
         goto EXIT;
     }
 
-    new_node->position       = (curr_node->position + 1);
-    new_node->flag           = CLIENT_LIST_NOFULL;
-    new_node->active_clients = 1;
-    memset(&new_node->client_list, -1, sizeof(new_node->client_list));
+    new_node->position            = (curr_node->position + 1);
+    new_node->flag                = CLIENT_LIST_NOFULL;
+    new_node->active_clients      = 1;
+    new_node->enqueue_point       = 1;
+    new_node->next_available_spot = 0;
+    memset(&new_node->client_list, -1, (CAPACITY * sizeof(pollfd_t)));
     new_node->client_list[0].fd      = server_fd,
     new_node->client_list[0].events  = POLLIN,
     new_node->client_list[0].revents = 0;
+    new_node->available_spots[0]     = 1;
 
     curr_node->next = new_node;
 
@@ -317,26 +326,7 @@ static int connection_authorized(int fd)
 
     (void)convert_endianess64(&authorization_token);
 
-    printf("\n\n%lx\n\n", authorization_token);
-
     if (AUTH_CLIENT != authorization_token)
-    {
-        goto EXIT;
-    }
-
-    err_code = E_SUCCESS;
-
-EXIT:
-
-    return err_code;
-}
-
-static int connection_still_alive(int fd)
-{
-    int  err_code = E_FAILURE;
-    char buffer[1];
-
-    if (recv(fd, buffer, sizeof(buffer), (MSG_PEEK | O_NONBLOCK)) == 0)
     {
         goto EXIT;
     }
@@ -378,24 +368,20 @@ static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
         goto EXIT;
     }
 
-    for (uint64_t idx = 0; client_list_node->active_clients > idx; idx++)
+    for (uint64_t idx = 0; CAPACITY > idx; idx++)
     {
         if (0 >= client_list_node->client_list[idx].fd)
         {
+            client_list_node->available_spots[client_list_node->enqueue_point] =
+                idx;
+            client_list_node->enqueue_point =
+                ((client_list_node->enqueue_point + 1) % (CAPACITY - 1));
+
             continue;
         }
 
         if ((client_list_node->client_list[idx].revents & POLLIN) == POLLIN)
         {
-            if (E_FAILURE ==
-                connection_still_alive(client_list_node->client_list[idx].fd))
-            {
-                printf("\n\nClient #%d left\n\n",
-                       client_list_node->client_list[idx].fd);
-                close(client_list_node->client_list[idx].fd);
-                client_list_node->client_list[idx].fd *= -1;
-            }
-
             if (server_fd == client_list_node->client_list[idx].fd)
             {
                 if (client_list_node->active_clients == CAPACITY)
@@ -427,8 +413,11 @@ static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
                     continue;
                 }
 
-                client_list_node->active_clients++;
-                new_client_idx = (idx + (client_list_node->active_clients - 1));
+                new_client_idx = client_list_node->available_spots
+                                     [client_list_node->next_available_spot];
+                client_list_node->next_available_spot =
+                    ((1 + client_list_node->next_available_spot) %
+                     (CAPACITY - 1));
 
                 client_list_node->client_list[new_client_idx].fd = client_fd;
                 client_list_node->client_list[new_client_idx].events  = POLLIN;
@@ -437,6 +426,8 @@ static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
                 fcntl(client_list_node->client_list[new_client_idx].fd,
                       F_SETFD,
                       O_NONBLOCK);
+
+                client_list_node->active_clients++;
 
                 printf(
                     "\n\nClients active on server #%d in section #%hu: %lu\n\n",
