@@ -18,18 +18,12 @@ typedef struct __attribute__((packed)) INSTRUCTION_HEADER
 } instruction_hdr_t;
 
 /**
- * @brief           Welcome new client
- *
- * @param client    Client socket
- */
-void session_welcome(int client);
-
-/**
  * @brief                Await instructions from the user
  *
  * @param client         Client socket
+ * @param client_poll    Valid client poll instance
  */
-bool session_menu_active(int client);
+bool session_menu_active(int client, struct pollfd * client_poll);
 
 #endif /* CLIENT_SESSION_H */
 

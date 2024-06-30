@@ -4,8 +4,6 @@
 #define MAX_NAME_LEN 50
 #define MAX_PASS_LEN 100
 
-#define TERMINATE_SESSION 0xffff
-
 #define CLIENT_ACTIVE 1
 typedef struct associated_bank
 {
@@ -21,15 +19,17 @@ typedef struct profile
 } profile_t;
 typedef enum instruction_codes
 {
-    RECV_READY     = 0x12df,
-    SEND_READY     = 0x12ab,
-    LOGIN          = 0xccdf,
-    ADD_BANK       = 0xdadf,
-    ADD_BALANCE    = 0x2394,
-    REMOVE_BANK    = 0xcc91,
-    REMOVE_BALANCE = 0xff43,
-    UPDATE_BANK    = 0x6582,
-    UPDATE_BALANCE = 0x2239
+    RECV_READY        = 0x12df,
+    SEND_READY        = 0x12ab,
+    LOGIN             = 0xccdf,
+    SIGNUP            = 0xccdc,
+    ADD_BANK          = 0xdadf,
+    ADD_BALANCE       = 0x2394,
+    REMOVE_BANK       = 0xcc91,
+    REMOVE_BALANCE    = 0xff43,
+    UPDATE_BANK       = 0x6582,
+    UPDATE_BALANCE    = 0x2239,
+    TERMINATE_SESSION = 0xfffe
 } instruction_codes_t;
 
 /**
@@ -50,22 +50,9 @@ static int send_instructions(int                 client,
                              meta_data_t         meta_data,
                              instruction_hdr_t * instructions);
 
-void session_welcome(int client)
+bool session_menu_active(int client, struct pollfd * client_poll)
 {
-    meta_data_t meta_data = {
-        .bytes_received = 0, .bytes_sent = 0, .msg_len = 0, .msg = { 0 }
-    };
-
-    meta_data.msg_len = snprintf(
-        meta_data.msg, MAX_MSG_LEN, "\n\nHello, Client #%d\n\n", client);
-
-    print_to_client(meta_data, client, meta_data.msg);
-
-    return;
-}
-
-bool session_menu_active(int client)
-{
+    printf("\n\nClient Running\n\n");
     bool session_active = true;
 
     meta_data_t meta_data = {
@@ -91,6 +78,10 @@ bool session_menu_active(int client)
         case LOGIN:
 
             break;
+        case SIGNUP:
+            printf("\n\nSIGNUP\n\n");
+
+            break;
         case ADD_BANK:
 
             break;
@@ -109,16 +100,25 @@ bool session_menu_active(int client)
         case UPDATE_BALANCE:
 
             break;
+        case TERMINATE_SESSION:
+            session_active = false;
+
+            break;
         default:
             goto EXIT;
     }
 
-    if (instruction_set->op_code == TERMINATE_SESSION)
+EXIT:
+
+    if (false == session_active)
     {
-        session_active = false;
+        printf("\n\nClient #%d left\n\n", client_poll->fd);
+        close(client_poll->fd);
+        client_poll->fd *= -1;
     }
 
-EXIT:
+    free(instruction_set);
+    instruction_set = NULL;
 
     return session_active;
 }
@@ -126,15 +126,34 @@ EXIT:
 static instruction_hdr_t * receive_instructions(int         client,
                                                 meta_data_t meta_data)
 {
-    instruction_hdr_t * new_instructions = NULL;
+    instruction_hdr_t * new_instructions =
+        (instruction_hdr_t *)calloc(1, sizeof(instruction_hdr_t));
+
+    if (NULL == new_instructions)
+    {
+        DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
+
+        goto EXIT;
+    }
 
     meta_data.bytes_received =
         receive_bytes(client, new_instructions, sizeof(instruction_hdr_t));
 
     if (ERROR == meta_data.bytes_received)
     {
+        free(new_instructions);
+        new_instructions = NULL;
+
         goto EXIT;
     }
+
+    (void)convert_endianess16(&new_instructions->op_code);
+
+    (void)convert_endianess64(&new_instructions->byte_size);
+
+    printf("Instructions: %x, %lu",
+           new_instructions->op_code,
+           new_instructions->byte_size);
 
 EXIT:
 

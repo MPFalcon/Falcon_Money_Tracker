@@ -5,7 +5,7 @@
 
 #define MAX_CLIENT_LISTS 10
 #define CAPACITY         10
-#define TIMEOUT_MS       -1
+#define TIMEOUT_MS       100
 
 typedef struct pollfd pollfd_t;
 typedef struct poll_fd_node
@@ -308,7 +308,7 @@ static int connection_authorized(int fd)
     };
 
     meta_data.bytes_received =
-        recv(fd, &authorization_token, sizeof(uint64_t), 0);
+        recv(fd, &authorization_token, sizeof(uint64_t), O_NONBLOCK);
 
     if (ERROR == meta_data.bytes_received)
     {
@@ -320,6 +320,23 @@ static int connection_authorized(int fd)
     printf("\n\n%lx\n\n", authorization_token);
 
     if (AUTH_CLIENT != authorization_token)
+    {
+        goto EXIT;
+    }
+
+    err_code = E_SUCCESS;
+
+EXIT:
+
+    return err_code;
+}
+
+static int connection_still_alive(int fd)
+{
+    int  err_code = E_FAILURE;
+    char buffer[1];
+
+    if (recv(fd, buffer, sizeof(buffer), (MSG_PEEK | O_NONBLOCK)) == 0)
     {
         goto EXIT;
     }
@@ -370,6 +387,15 @@ static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
 
         if ((client_list_node->client_list[idx].revents & POLLIN) == POLLIN)
         {
+            if (E_FAILURE ==
+                connection_still_alive(client_list_node->client_list[idx].fd))
+            {
+                printf("\n\nClient #%d left\n\n",
+                       client_list_node->client_list[idx].fd);
+                close(client_list_node->client_list[idx].fd);
+                client_list_node->client_list[idx].fd *= -1;
+            }
+
             if (server_fd == client_list_node->client_list[idx].fd)
             {
                 if (client_list_node->active_clients == CAPACITY)
@@ -421,12 +447,9 @@ static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
             else
             {
                 if (false ==
-                    session_menu_active(client_list_node->client_list[idx].fd))
+                    session_menu_active(client_list_node->client_list[idx].fd,
+                                        &client_list_node->client_list[idx]))
                 {
-                    printf("\n\nClient #%d left\n\n",
-                           client_list_node->client_list[idx].fd);
-                    close(client_list_node->client_list[idx].fd);
-                    client_list_node->client_list[idx].fd *= -1;
                     client_list_node->active_clients--;
                 }
             }
