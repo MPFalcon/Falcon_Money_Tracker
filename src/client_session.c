@@ -53,6 +53,15 @@ typedef enum return_code
 static instruction_hdr_t * receive_instructions(int         client,
                                                 meta_data_t meta_data);
 
+/**
+ * @brief               Create a profile and add to database
+ * 
+ * @param instructions  Valid instructions instant
+ * @param meta_data     Metadata structure
+ * @param client        Client FD
+ */
+void create_profile(instruction_hdr_t * instructions, meta_data_t meta_data, int client);
+
 bool session_menu_active(int client, struct pollfd * client_poll)
 {
     bool session_active = true;
@@ -82,6 +91,7 @@ bool session_menu_active(int client, struct pollfd * client_poll)
             break;
         case SIGNUP:
             printf("\n\nSIGNUP\n\n");
+            create_profile(instruction_set, meta_data, client);
 
             break;
         case ADD_BANK:
@@ -160,6 +170,37 @@ static instruction_hdr_t * receive_instructions(int         client,
 EXIT:
 
     return new_instructions;
+}
+
+void create_profile(instruction_hdr_t * instructions, meta_data_t meta_data, int client)
+{
+    uint16_t err_code = OP_UNKNOWN;
+
+    if (NULL == instructions)
+    {
+        goto EXIT;
+    }
+    
+    char sign_up_data[MAX_MSG_LEN];
+    
+    meta_data.bytes_received = receive_bytes(client, sign_up_data, instructions->byte_size);
+
+    printf("Data Received: %s", sign_up_data);
+
+    err_code = OP_SUCCESS;
+
+EXIT:
+
+    (void)convert_endianess16(&err_code);
+
+    meta_data.bytes_sent = send_bytes(client, &err_code, sizeof(uint16_t));
+
+    if (ERROR == meta_data.bytes_sent)
+    {
+        DEBUG_PRINT("\n\nERROR [x]  Error occurred in send_bytes(): %s\n\n", __func__);
+    }
+
+    return;
 }
 
 /*** end of file ***/
