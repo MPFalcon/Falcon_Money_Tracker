@@ -1,3 +1,4 @@
+import fcntl
 from menu import *
 
 def send_token(client):
@@ -7,6 +8,7 @@ def send_token(client):
 def connect_to_server(server_info):
     client = socket(AF_INET, SOCK_STREAM, IPPROTO_IP)
     client.connect((server_info[0], server_info[1]))
+    fcntl(client, F_SETFD, os.O_NONBLOCK)
 
     return client
 

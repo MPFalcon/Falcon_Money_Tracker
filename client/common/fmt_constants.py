@@ -1,5 +1,10 @@
 from socket import *
 from struct import *
+from fcntl import *
+from time import *
+from select import *
+
+import errno
 
 SUCCESS = 0
 FAILURE = 1
@@ -8,6 +13,8 @@ MAX_MSG_LEN  = 4098
 MAX_BANK_LEN = 200
 MAX_NAME_LEN = 50
 MAX_PASS_LEN = 100
+
+INSTRUCTION_HDR_LEN = 9
 
 AUTH_CLIENT       = 0xfeb4593fecc67839
 
@@ -45,3 +52,52 @@ class Instruction_Header:
 
     def show_instructions(self):
         print(f"({self.op_code}, {self.byte_size})")
+
+class Profile:
+    def __init__(self) -> None:
+        self.username = ""
+        self.password = ""
+    
+    def update_profile(self, username, password):
+        self.username = username
+        self.password = password
+    
+    def get_info_string(self):
+        delim = ""
+        return f"{self.username}{delim}{self.password}"
+    
+def recv_full_data(client, expected_len):
+    buffer = bytearray()
+    recv_bytes = 0
+
+    while (expected_len - recv_bytes) > 0:
+        try:
+            buffer.extend(client.recv((expected_len - recv_bytes)))
+            recv_bytes = len(buffer)
+        except error as e:
+            err = e.args[0]
+            if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
+                print('No data available')
+                continue
+            else:
+                close(client)
+                print(e)
+                exit(1)
+
+    return bytes(buffer)
+
+def send_full_data(client, buffer, buffer_size):
+    print(f'Bytes to send: {buffer_size}')
+    total_sent = 0
+
+    while len(buffer):
+        try:
+            sent = client.send(buffer)
+            total_sent += sent
+            buffer = buffer[sent:]
+        except error as e:
+            if e.errno != errno.EAGAIN:
+                raise e
+            
+            print(f'Blocking with {len(buffer)} remaining')
+            select([], [client], [])  # This blocks until
