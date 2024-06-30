@@ -3,56 +3,58 @@
 #define MAX_BANK_LEN 200
 #define MAX_NAME_LEN 50
 #define MAX_PASS_LEN 100
-
-#define CLIENT_ACTIVE 1
 typedef struct associated_bank
 {
-    char      bank_name[MAX_BANK_LEN];
-    u_int64_t balance;
+    char     bank_name[MAX_BANK_LEN];
+    uint64_t balance;
 } bank_t;
 typedef struct profile
 {
     uint64_t profile_id;
     char     username[MAX_NAME_LEN];
     char     password[MAX_PASS_LEN];
+    uint32_t bank_count;
     bank_t * banks;
 } profile_t;
 typedef enum instruction_codes
 {
-    RECV_READY        = 0x12df,
-    SEND_READY        = 0x12ab,
-    LOGIN             = 0xccdf,
-    SIGNUP            = 0xccdc,
-    ADD_BANK          = 0xdadf,
-    ADD_BALANCE       = 0x2394,
-    REMOVE_BANK       = 0xcc91,
-    REMOVE_BALANCE    = 0xff43,
-    UPDATE_BANK       = 0x6582,
-    UPDATE_BALANCE    = 0x2239,
-    TERMINATE_SESSION = 0xfffe
+    RECV_READY        = 0xa2df,
+    SEND_READY        = 0xa2ab,
+    LOGIN             = 0xacdf,
+    SIGNUP            = 0xacdc,
+    ADD_BANK          = 0xaadf,
+    ADD_BALANCE       = 0xa394,
+    REMOVE_BANK       = 0xac91,
+    REMOVE_BALANCE    = 0xaf43,
+    UPDATE_BANK       = 0xa582,
+    UPDATE_BALANCE    = 0xa239,
+    TERMINATE_SESSION = 0xaffe,
+    ERR_CODE          = 0xabfd
 } instruction_codes_t;
 
-/**
- * @brief           Print to client
- *
- * @param meta_data Metadata structure
- * @param client    Client FD
- * @param p_msg     Message
- */
-static void print_to_client(meta_data_t  meta_data,
-                            int          client,
-                            const char * p_msg);
+typedef enum return_code
+{
+    OP_SUCCESS  = 0xb2df,
+    OP_ERR      = 0xb2ab,
+    OP_MSGINVAL = 0xbcdf,
+    OP_NOTFOUND = 0xbcdc,
+    OP_UNKNOWN  = 0xbadf
+} ret_code_t;
 
+/**
+ * @brief                       Recieve instruction code from client
+ *                              for the server to intepret
+ *
+ * @param client                Client FD
+ * @param meta_data             Metadata structure
+ *
+ * @return                      Instruction set instance
+ */
 static instruction_hdr_t * receive_instructions(int         client,
                                                 meta_data_t meta_data);
 
-static int send_instructions(int                 client,
-                             meta_data_t         meta_data,
-                             instruction_hdr_t * instructions);
-
 bool session_menu_active(int client, struct pollfd * client_poll)
 {
-    printf("\n\nClient Running\n\n");
     bool session_active = true;
 
     meta_data_t meta_data = {
@@ -112,7 +114,7 @@ EXIT:
 
     if (false == session_active)
     {
-        printf("\n\nClient #%d left\n\n", client_poll->fd);
+        // printf("\n\nClient #%d left\n\n", client_poll->fd);
         close(client_poll->fd);
         client_poll->fd *= -1;
     }
@@ -158,43 +160,6 @@ static instruction_hdr_t * receive_instructions(int         client,
 EXIT:
 
     return new_instructions;
-}
-
-static void print_to_client(meta_data_t  meta_data,
-                            int          client,
-                            const char * p_msg)
-{
-    if (NULL == p_msg)
-    {
-        DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
-
-        goto EXIT;
-    }
-
-    meta_data.msg_len = snprintf(meta_data.msg, MAX_MSG_LEN, "%s", p_msg);
-
-    // int err_code = send_instructions(p_session, meta_data, MSG_CODE,
-    // meta_data.msg_len);
-
-    // if (SUCCESS != err_code)
-    // {
-    //     DEBUG_PRINT("\n\nERROR [x]  Error occured in send_instructions():
-    //     %s\n\n", __func__);
-
-    //     goto EXIT;
-    // }
-
-    meta_data.bytes_sent = send_bytes(client, meta_data.msg, meta_data.msg_len);
-
-    if (ERROR == meta_data.bytes_sent)
-    {
-        DEBUG_PRINT("\n\nERROR [x]  Error occurred in send_bytes(): %s\n\n",
-                    __func__);
-    }
-
-EXIT:
-
-    return;
 }
 
 /*** end of file ***/

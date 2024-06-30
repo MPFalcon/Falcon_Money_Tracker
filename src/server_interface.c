@@ -4,8 +4,8 @@
 #define CLIENT_LIST_FULL   0x1
 
 #define MAX_CLIENT_LISTS 10
-#define CAPACITY         5
-#define TIMEOUT_MS       1
+#define CAPACITY         2
+#define TIMEOUT_MS       -1
 
 typedef struct pollfd pollfd_t;
 typedef struct poll_fd_node
@@ -48,6 +48,16 @@ static int server_setup(int svr_sock, uint16_t port);
 static int create_new_node(poll_fd_list_t * poll_list, int server_fd);
 
 /**
+ * @brief       Determine if newly established session is authorized
+ *
+ * @param fd    Client FD
+ *
+ * @return      SUCCESS: 0
+ *              FAILURE: 1
+ */
+static int connection_authorized(int fd);
+
+/**
  * @brief                   Iterate through poll section
  *
  * @param client_list_node  Valid poll section instance
@@ -57,6 +67,24 @@ static int create_new_node(poll_fd_list_t * poll_list, int server_fd);
  *                          FAILURE: 1
  */
 static int list_iteration(poll_fd_node_t * client_list_node, int server_fd);
+
+/**
+ * @brief                       Process specific file descriptor in poller
+ *
+ * @param server_fd             Server FD
+ * @param client_list_node      Valid client list instance
+ * @param client_skt_t          Valid client FD instance
+ * @param client_addr_len       Valid client address length instance
+ * @param idx                   Position of the FD in the poller
+ *
+ * @return                      SUCCESS: 0
+ *                              FAILURE: 1
+ */
+static int process_fd(int                  server_fd,
+                      poll_fd_node_t *     client_list_node,
+                      struct sockaddr_in * client_skt_t,
+                      socklen_t *          client_addr_len,
+                      uint64_t             idx);
 
 /**
  * @brief               Properly and gracefully shut down server and
@@ -340,10 +368,7 @@ EXIT:
 
 static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
 {
-    int err_code  = E_FAILURE;
-    int client_fd = 0;
-
-    uint64_t new_client_idx = 0;
+    int err_code = E_FAILURE;
 
     struct sockaddr_in client_skt_t;
 
@@ -382,72 +407,99 @@ static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
 
         if ((client_list_node->client_list[idx].revents & POLLIN) == POLLIN)
         {
-            if (server_fd == client_list_node->client_list[idx].fd)
+            err_code = process_fd(server_fd,
+                                  client_list_node,
+                                  &client_skt_t,
+                                  &client_addr_len,
+                                  idx);
+
+            if (E_FAILURE == err_code)
             {
-                if (client_list_node->active_clients == CAPACITY)
-                {
-                    client_list_node->flag =
-                        (client_list_node->flag | CLIENT_LIST_FULL);
-
-                    err_code = E_SUCCESS;
-
-                    continue;
-                }
-
-                if (ERROR ==
-                    (client_fd = accept(server_fd,
-                                        (struct sockaddr *)&client_skt_t,
-                                        &client_addr_len)))
-                {
-                    DEBUG_PRINT(
-                        "\n\nERROR [x]  Failed to accept client: %s\n\n",
-                        __func__);
-
-                    continue;
-                }
-
-                if (E_FAILURE == connection_authorized(client_fd))
-                {
-                    close(client_fd);
-
-                    continue;
-                }
-
-                new_client_idx = client_list_node->available_spots
-                                     [client_list_node->next_available_spot];
-                client_list_node->next_available_spot =
-                    ((1 + client_list_node->next_available_spot) %
-                     (CAPACITY - 1));
-
-                client_list_node->client_list[new_client_idx].fd = client_fd;
-                client_list_node->client_list[new_client_idx].events  = POLLIN;
-                client_list_node->client_list[new_client_idx].revents = 0;
-
-                fcntl(client_list_node->client_list[new_client_idx].fd,
-                      F_SETFD,
-                      O_NONBLOCK);
-
-                client_list_node->active_clients++;
-
-                printf(
-                    "\n\nClients active on server #%d in section #%hu: %lu\n\n",
-                    server_fd,
-                    client_list_node->position,
-                    client_list_node->active_clients);
-            }
-            else
-            {
-                if (false ==
-                    session_menu_active(client_list_node->client_list[idx].fd,
-                                        &client_list_node->client_list[idx]))
-                {
-                    client_list_node->active_clients--;
-                }
+                break;
             }
         }
     }
 
     err_code = E_SUCCESS;
+
+EXIT:
+
+    return err_code;
+}
+
+static int process_fd(int                  server_fd,
+                      poll_fd_node_t *     client_list_node,
+                      struct sockaddr_in * client_skt_t,
+                      socklen_t *          client_addr_len,
+                      uint64_t             idx)
+{
+    int err_code       = E_SUCCESS;
+    int client_fd      = 0;
+    int new_client_idx = 0;
+
+    if ((NULL == client_list_node) || (NULL == client_skt_t) ||
+        (NULL == client_addr_len))
+    {
+        DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
+
+        err_code = E_FAILURE;
+
+        goto EXIT;
+    }
+
+    if (server_fd == client_list_node->client_list[idx].fd)
+    {
+        if (client_list_node->active_clients == CAPACITY)
+        {
+            client_list_node->flag =
+                (client_list_node->flag | CLIENT_LIST_FULL);
+
+            goto EXIT;
+        }
+
+        if (ERROR == (client_fd = accept(server_fd,
+                                         (struct sockaddr *)client_skt_t,
+                                         client_addr_len)))
+        {
+            DEBUG_PRINT("\n\nERROR [x]  Failed to accept client: %s\n\n",
+                        __func__);
+
+            goto EXIT;
+        }
+
+        if (E_FAILURE == connection_authorized(client_fd))
+        {
+            close(client_fd);
+
+            goto EXIT;
+        }
+
+        new_client_idx =
+            client_list_node
+                ->available_spots[client_list_node->next_available_spot];
+        client_list_node->next_available_spot =
+            ((1 + client_list_node->next_available_spot) % (CAPACITY - 1));
+
+        client_list_node->client_list[new_client_idx].fd      = client_fd;
+        client_list_node->client_list[new_client_idx].events  = POLLIN;
+        client_list_node->client_list[new_client_idx].revents = 0;
+
+        fcntl(client_list_node->client_list[new_client_idx].fd,
+              F_SETFD,
+              O_NONBLOCK);
+
+        client_list_node->active_clients++;
+
+        // printf("\n\nClients active on server #%d in section #%hu: %lu\n\n",
+        //        server_fd,
+        //        client_list_node->position,
+        //        client_list_node->active_clients);
+    }
+    else if (false == session_menu_active(client_list_node->client_list[idx].fd,
+                                          &client_list_node->client_list[idx]))
+    {
+        client_list_node->active_clients--;
+    }
 
 EXIT:
 
