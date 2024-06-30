@@ -37,6 +37,20 @@ typedef struct poll_fd_list
 static int server_setup(int svr_sock, uint16_t port);
 
 /**
+ * @brief               Initiate server
+ *
+ * @param curr_node     Valid node iterator instance
+ * @param svr_sock      Server FD
+ * @param poll_list     Valid poll list instance
+ *
+ * @return              SUCCESS: 0
+ *                      FAILURE: 1
+ */
+static int initiate_server(poll_fd_node_t * curr_node,
+                           int              svr_sock,
+                           poll_fd_list_t * poll_list);
+
+/**
  * @brief               Create a new poll section
  *
  * @param poll_list     Valid poll list instance
@@ -97,6 +111,17 @@ static int process_fd(int                  server_fd,
  */
 static int server_shutdown(int svr_sock);
 
+/**
+ * @brief               Free memory associate with main poller list
+ *
+ * @param poll_list     Valid poller list instance
+ * @param prev_node     Valid pointer to trailing poller
+ * @param curr_node     Valid pointer to current poller
+ */
+static void free_poll_list(poll_fd_list_t *  poll_list,
+                           poll_fd_node_t ** prev_node,
+                           poll_fd_node_t ** curr_node);
+
 int setup_driver(uint16_t port)
 {
     int err_code = E_FAILURE;
@@ -134,7 +159,9 @@ static int server_setup(int svr_sock, uint16_t port)
 {
     int err_code = E_FAILURE;
 
-    poll_fd_list_t poll_list = { .head = NULL, .tail = NULL };
+    poll_fd_list_t   poll_list = { .head = NULL, .tail = NULL };
+    poll_fd_node_t * curr_node = NULL;
+    poll_fd_node_t * prev_node = NULL;
 
     struct sockaddr_in server_skt_t;
 
@@ -204,7 +231,29 @@ static int server_setup(int svr_sock, uint16_t port)
         goto EXIT;
     }
 
-    poll_fd_node_t * curr_node = poll_list.head;
+    curr_node = poll_list.head;
+
+    err_code = initiate_server(curr_node, svr_sock, &poll_list);
+
+    if (E_SUCCESS != err_code)
+    {
+        goto EXIT;
+    }
+
+    err_code = E_SUCCESS;
+
+EXIT:
+
+    free_poll_list(&poll_list, &prev_node, &curr_node);
+
+    return err_code;
+}
+
+static int initiate_server(poll_fd_node_t * curr_node,
+                           int              svr_sock,
+                           poll_fd_list_t * poll_list)
+{
+    int err_code = E_FAILURE;
 
     for (;;)
     {
@@ -225,10 +274,10 @@ static int server_setup(int svr_sock, uint16_t port)
         }
 
         if ((0 != (curr_node->flag & CLIENT_LIST_FULL)) &&
-            (poll_list.head == curr_node->next) &&
+            (poll_list->head == curr_node->next) &&
             (MAX_CLIENT_LISTS >= curr_node->position))
         {
-            err_code = create_new_node(&poll_list, svr_sock);
+            err_code = create_new_node(poll_list, svr_sock);
 
             if (E_SUCCESS != err_code)
             {
@@ -527,6 +576,40 @@ static int server_shutdown(int svr_sock)
     // EXIT:
 
     return err_code;
+}
+
+static void free_poll_list(poll_fd_list_t *  poll_list,
+                           poll_fd_node_t ** prev_node,
+                           poll_fd_node_t ** curr_node)
+{
+    if ((NULL == poll_list) || (NULL == prev_node) || (NULL == curr_node))
+    {
+        DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
+
+        goto EXIT;
+    }
+
+    *prev_node = poll_list->head;
+    *curr_node = poll_list->head;
+
+    while (poll_list->head != (*curr_node)->next)
+    {
+        *prev_node = *curr_node;
+        *curr_node = (*curr_node)->next;
+
+        free(*prev_node);
+    }
+
+    free(*curr_node);
+
+    *prev_node      = NULL;
+    *curr_node      = NULL;
+    poll_list->head = NULL;
+    poll_list->tail = NULL;
+
+EXIT:
+
+    return;
 }
 
 /*** end of file ***/
