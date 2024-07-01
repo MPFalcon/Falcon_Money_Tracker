@@ -5,19 +5,21 @@ def get_code(byte_code):
     return unpack_from("!H", byte_code)[0]
 
 def sign_up(profile, client, instructions):
-    username = input("\n> What's your new username: ")
-    password = input("\n> What's your new password: ")
-
-    profile.update_profile(username, password)
+    profile.username = input("\n> What's your new username: ")
+    profile.password = input("\n> What's your new password: ")
 
     data_len_sets = (len(profile.username), len(profile.password))
-    bytes_fomats = ("!Q", "!Q")
+    bytes_formats = ("!Q", "!Q")
 
     send_full_data(client, instructions.pack_instructions(SIGNUP, calcsize("!QQ")), INSTRUCTION_HDR_LEN)
-    send_full_data(client, profile.packed_metadata(bytes_fomats, data_len_sets), calcsize("!QQ"))
+    send_full_data(client, profile.packed_metadata(bytes_formats, data_len_sets), calcsize("!QQ"))
 
-    for i in (username, password):
+    for i in (profile.username, profile.password):
         send_full_data(client, i.encode("utf-8"), len(i))
+
+    profile.profile_id = unpack("!Q", recv_full_data(client, calcsize("!Q")))
+
+    print("\n\n")
 
     if OP_SUCCESS == get_code(recv_full_data(client, 2)):
         print("\n\nSuccess!\n")
@@ -27,7 +29,6 @@ def menu(client, instructions):
     profile = Profile()
 
     while True:
-      os.system("clear")
       print('''
           1) Login
           2) Sign Up

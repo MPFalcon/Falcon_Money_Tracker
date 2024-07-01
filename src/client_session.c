@@ -59,10 +59,12 @@ static instruction_hdr_t * receive_instructions(int         client,
  * @param instructions  Valid instructions instant
  * @param meta_data     Metadata structure
  * @param client        Client FD
+ *
+ * @return              Valid profile instance
  */
-void create_profile(instruction_hdr_t * instructions,
-                    meta_data_t         meta_data,
-                    int                 client);
+static profile_t * create_profile(instruction_hdr_t * instructions,
+                                  meta_data_t         meta_data,
+                                  int                 client);
 
 bool session_menu_active(int client, struct pollfd * client_poll)
 {
@@ -72,11 +74,15 @@ bool session_menu_active(int client, struct pollfd * client_poll)
         .bytes_received = 0, .bytes_sent = 0, .msg_len = 0, .msg = { 0 }
     };
 
+    profile_t * user_profile = NULL;
+
     instruction_hdr_t * instruction_set =
         receive_instructions(client, meta_data);
 
     if (NULL == instruction_set)
     {
+        DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
+
         goto EXIT;
     }
 
@@ -93,7 +99,7 @@ bool session_menu_active(int client, struct pollfd * client_poll)
             break;
         case SIGNUP:
             printf("\n\nSIGNUP\n\n");
-            create_profile(instruction_set, meta_data, client);
+            user_profile = create_profile(instruction_set, meta_data, client);
 
             break;
         case ADD_BANK:
@@ -130,6 +136,9 @@ EXIT:
         close(client_poll->fd);
         client_poll->fd *= -1;
     }
+
+    free(user_profile);
+    user_profile = NULL;
 
     free(instruction_set);
     instruction_set = NULL;
@@ -174,9 +183,9 @@ EXIT:
     return new_instructions;
 }
 
-void create_profile(instruction_hdr_t * instructions,
-                    meta_data_t         meta_data,
-                    int                 client)
+static profile_t * create_profile(instruction_hdr_t * instructions,
+                                  meta_data_t         meta_data,
+                                  int                 client)
 {
     const int   required_len_count = 2;
     uint16_t    err_code           = OP_UNKNOWN;
@@ -214,8 +223,15 @@ void create_profile(instruction_hdr_t * instructions,
     meta_data.bytes_received =
         receive_bytes(client, new_profile->password, required_lens[1]);
 
-    printf(
-        "\n\nData Received: %s, %s\n\n", new_profile->username, new_profile->password);
+    printf("\n\nData Received: %s, %s\n\n",
+           new_profile->username,
+           new_profile->password);
+
+    new_profile->profile_id = 1;
+
+    (void)convert_endianess64(&new_profile->profile_id);
+
+    meta_data.bytes_sent = send_bytes(client, &new_profile->profile_id, sizeof(uint64_t));
 
     err_code = OP_SUCCESS;
 
@@ -231,7 +247,7 @@ EXIT:
                     __func__);
     }
 
-    return;
+    return new_profile;
 }
 
 /*** end of file ***/

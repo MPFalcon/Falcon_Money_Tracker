@@ -5,7 +5,7 @@
 #define BITS32        32
 #define BITS16        16
 #define BITS8         8
-#define BITS32        32
+#define BITS64        64
 #define E32_LMASK     0xFF00FF00
 #define E32_RMASK     0xFF00FF
 #define E64_LMASK     0xFF00FF00FF00FF00ULL

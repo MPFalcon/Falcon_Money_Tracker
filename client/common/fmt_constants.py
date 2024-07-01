@@ -55,12 +55,9 @@ class Instruction_Header:
 
 class Profile:
     def __init__(self) -> None:
-        self.username = ""
-        self.password = ""
-    
-    def update_profile(self, username, password):
-        self.username = username
-        self.password = password
+        self.username   = ""
+        self.password   = ""
+        self.profile_id = 0
     
     def packed_metadata(self, struct_formats, data_len_set):
         packed_bytes = b""
@@ -82,7 +79,6 @@ def recv_full_data(client, expected_len):
         except error as e:
             err = e.args[0]
             if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
-                print('No data available')
                 continue
             else:
                 close(client)
@@ -92,7 +88,6 @@ def recv_full_data(client, expected_len):
     return bytes(buffer)
 
 def send_full_data(client, buffer, buffer_size):
-    print(f'Bytes to send: {buffer_size}')
     total_sent = 0
 
     while len(buffer):
@@ -103,6 +98,4 @@ def send_full_data(client, buffer, buffer_size):
         except error as e:
             if e.errno != errno.EAGAIN:
                 raise e
-            
-            print(f'Blocking with {len(buffer)} remaining')
             select([], [client], [])  # This blocks until
