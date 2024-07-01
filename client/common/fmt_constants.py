@@ -62,9 +62,14 @@ class Profile:
         self.username = username
         self.password = password
     
-    def get_info_string(self):
-        delim = ""
-        return f"{self.username}{delim}{self.password}"
+    def packed_metadata(self, struct_formats, data_len_set):
+        packed_bytes = b""
+
+        for i in range(len(data_len_set)):
+            packed_bytes += pack(struct_formats[i], data_len_set[i])
+
+        return packed_bytes
+        
     
 def recv_full_data(client, expected_len):
     buffer = bytearray()

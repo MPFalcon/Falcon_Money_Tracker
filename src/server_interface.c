@@ -4,8 +4,8 @@
 #define CLIENT_LIST_FULL   0x1
 
 #define MAX_CLIENT_LISTS 10
-#define CAPACITY         2
-#define TIMEOUT_MS       -1
+#define CAPACITY         5
+#define TIMEOUT_MS       1
 
 typedef struct pollfd pollfd_t;
 typedef struct poll_fd_node
@@ -178,6 +178,8 @@ static int server_setup(int svr_sock, uint16_t port)
 
         goto EXIT;
     }
+
+    fcntl(svr_sock, F_SETFD, O_NONBLOCK);
 
     server_skt_t.sin_family      = AF_INET;
     server_skt_t.sin_addr.s_addr = INADDR_ANY;
@@ -430,9 +432,7 @@ static int list_iteration(poll_fd_node_t * client_list_node, int server_fd)
         goto EXIT;
     }
 
-    if (poll(client_list_node->client_list,
-             client_list_node->active_clients,
-             TIMEOUT_MS) == -1)
+    if (poll(client_list_node->client_list, CAPACITY, TIMEOUT_MS) == -1)
     {
         DEBUG_PRINT(
             "\n\nERROR [x]  Error occurred at poll() in section #%hu: %s\n\n",
@@ -543,6 +543,12 @@ static int process_fd(int                  server_fd,
         //        server_fd,
         //        client_list_node->position,
         //        client_list_node->active_clients);
+        // if (false ==
+        // session_menu_active(client_list_node->client_list[idx].fd,
+        //                                  &client_list_node->client_list[idx]))
+        // {
+        //     client_list_node->active_clients--;
+        // }
     }
     else if (false == session_menu_active(client_list_node->client_list[idx].fd,
                                           &client_list_node->client_list[idx]))

@@ -178,19 +178,44 @@ void create_profile(instruction_hdr_t * instructions,
                     meta_data_t         meta_data,
                     int                 client)
 {
-    uint16_t err_code = OP_UNKNOWN;
+    const int   required_len_count = 2;
+    uint16_t    err_code           = OP_UNKNOWN;
+    profile_t * new_profile        = NULL;
+
+    uint64_t required_lens[required_len_count];
 
     if (NULL == instructions)
     {
+        DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
+
         goto EXIT;
     }
 
-    char sign_up_data[MAX_MSG_LEN];
+    new_profile = (profile_t *)calloc(1, sizeof(profile_t));
+
+    if (NULL == new_profile)
+    {
+        DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
+
+        goto EXIT;
+    }
 
     meta_data.bytes_received =
-        receive_bytes(client, sign_up_data, instructions->byte_size);
+        receive_bytes(client, required_lens, instructions->byte_size);
 
-    printf("Data Received: %s", sign_up_data);
+    for (int idx = 0; required_len_count > idx; idx++)
+    {
+        (void)convert_endianess64(&required_lens[idx]);
+    }
+
+    meta_data.bytes_received =
+        receive_bytes(client, new_profile->username, required_lens[0]);
+
+    meta_data.bytes_received =
+        receive_bytes(client, new_profile->password, required_lens[1]);
+
+    printf(
+        "\n\nData Received: %s, %s\n\n", new_profile->username, new_profile->password);
 
     err_code = OP_SUCCESS;
 

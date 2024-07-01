@@ -10,8 +10,14 @@ def sign_up(profile, client, instructions):
 
     profile.update_profile(username, password)
 
-    send_full_data(client, instructions.pack_instructions(SIGNUP, len(profile.get_info_string())), INSTRUCTION_HDR_LEN)
-    send_full_data(client, profile.get_info_string().encode("utf-8"), len(profile.get_info_string().encode("utf-8")))
+    data_len_sets = (len(profile.username), len(profile.password))
+    bytes_fomats = ("!Q", "!Q")
+
+    send_full_data(client, instructions.pack_instructions(SIGNUP, calcsize("!QQ")), INSTRUCTION_HDR_LEN)
+    send_full_data(client, profile.packed_metadata(bytes_fomats, data_len_sets), calcsize("!QQ"))
+
+    for i in (username, password):
+        send_full_data(client, i.encode("utf-8"), len(i))
 
     if OP_SUCCESS == get_code(recv_full_data(client, 2)):
         print("\n\nSuccess!\n")
