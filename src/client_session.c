@@ -2,7 +2,11 @@
 
 #define MAX_BANK_LEN 200
 #define MAX_NAME_LEN 50
-#define MAX_PASS_LEN 100
+typedef union bigRand
+{
+    uint64_t ll;
+    uint32_t ii[2];
+} big_ran_t;
 typedef struct associated_bank
 {
     char     bank_name[MAX_BANK_LEN];
@@ -12,7 +16,8 @@ typedef struct profile
 {
     uint64_t profile_id;
     char     username[MAX_NAME_LEN];
-    char     password[MAX_PASS_LEN];
+    char     password[MAX_NAME_LEN];
+    char     email[MAX_NAME_LEN];
     uint32_t bank_count;
     bank_t * banks;
 } profile_t;
@@ -65,6 +70,13 @@ static instruction_hdr_t * receive_instructions(int         client,
 static profile_t * create_profile(instruction_hdr_t * instructions,
                                   meta_data_t         meta_data,
                                   int                 client);
+
+/**
+ * @brief  Random Number Generator for uint64_t
+ *
+ * @return Random generated uint64_t
+ */
+static uint64_t rand64();
 
 bool session_menu_active(int client, struct pollfd * client_poll)
 {
@@ -187,7 +199,7 @@ static profile_t * create_profile(instruction_hdr_t * instructions,
                                   meta_data_t         meta_data,
                                   int                 client)
 {
-    const int   required_len_count = 2;
+    const int   required_len_count = 3;
     uint16_t    err_code           = OP_UNKNOWN;
     profile_t * new_profile        = NULL;
 
@@ -223,15 +235,20 @@ static profile_t * create_profile(instruction_hdr_t * instructions,
     meta_data.bytes_received =
         receive_bytes(client, new_profile->password, required_lens[1]);
 
-    printf("\n\nData Received: %s, %s\n\n",
-           new_profile->username,
-           new_profile->password);
+    meta_data.bytes_received =
+        receive_bytes(client, new_profile->email, required_lens[2]);
 
-    new_profile->profile_id = 1;
+    printf("\n\nData Received -\n\nUsername: %s\nPassword: %s\nEmail: %s\n\n",
+           new_profile->username,
+           new_profile->password,
+           new_profile->email);
+
+    new_profile->profile_id = rand64();
 
     (void)convert_endianess64(&new_profile->profile_id);
 
-    meta_data.bytes_sent = send_bytes(client, &new_profile->profile_id, sizeof(uint64_t));
+    meta_data.bytes_sent =
+        send_bytes(client, &new_profile->profile_id, sizeof(uint64_t));
 
     err_code = OP_SUCCESS;
 
@@ -248,6 +265,15 @@ EXIT:
     }
 
     return new_profile;
+}
+
+static uint64_t rand64()
+{
+    big_ran_t bytes;
+    bytes.ii[0] = rand();
+    bytes.ii[1] = rand();
+
+    return bytes.ll;
 }
 
 /*** end of file ***/

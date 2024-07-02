@@ -57,6 +57,7 @@ class Profile:
     def __init__(self) -> None:
         self.username   = ""
         self.password   = ""
+        self.email      = ""
         self.profile_id = 0
     
     def packed_metadata(self, struct_formats, data_len_set):
