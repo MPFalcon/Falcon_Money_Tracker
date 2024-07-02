@@ -2,6 +2,7 @@
 
 #define MAX_BANK_LEN 200
 #define MAX_NAME_LEN 50
+#define MAX_PASS_LEN 100
 typedef union bigRand
 {
     uint64_t ll;
@@ -16,7 +17,7 @@ typedef struct profile
 {
     uint64_t profile_id;
     char     username[MAX_NAME_LEN];
-    char     password[MAX_NAME_LEN];
+    char     password[MAX_PASS_LEN];
     char     email[MAX_NAME_LEN];
     uint32_t bank_count;
     bank_t * banks;
@@ -41,6 +42,7 @@ typedef enum return_code
 {
     OP_SUCCESS  = 0xb2df,
     OP_ERR      = 0xb2ab,
+    OP_EXIST    = 0xbeeb,
     OP_MSGINVAL = 0xbcdf,
     OP_NOTFOUND = 0xbcdc,
     OP_UNKNOWN  = 0xbadf
@@ -227,6 +229,14 @@ static profile_t * create_profile(instruction_hdr_t * instructions,
     for (int idx = 0; required_len_count > idx; idx++)
     {
         (void)convert_endianess64(&required_lens[idx]);
+    }
+
+    if ((MAX_NAME_LEN > required_lens[0]) ||
+        (MAX_PASS_LEN > required_lens[1]) || (MAX_NAME_LEN > required_lens[2]))
+    {
+        err_code = OP_MSGINVAL;
+
+        goto EXIT;
     }
 
     meta_data.bytes_received =

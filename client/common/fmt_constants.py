@@ -33,6 +33,7 @@ ERR_CODE          = 0xabfd
 
 OP_SUCCESS    = 0xb2df
 OP_ERR        = 0xb2ab
+OP_EXIST      = 0xbeeb
 OP_MSGINVAL   = 0xbcdf
 OP_NOTFOUND   = 0xbcdc
 OP_UNKNOWN    = 0xbadf
@@ -82,9 +83,10 @@ def recv_full_data(client, expected_len):
             if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
                 continue
             else:
-                close(client)
+                client.close()
                 print(e)
-                exit(1)
+                
+                return
 
     return bytes(buffer)
 

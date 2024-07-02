@@ -22,17 +22,32 @@ def sign_up(profile, client, instructions):
 
     print(f"\n\nNew Profile ID: {profile.profile_id}\n\n")
 
-    if OP_SUCCESS == get_code(recv_full_data(client, 2)):
+    ret_code = get_code(recv_full_data(client, 2))
+
+    if OP_SUCCESS == ret_code:
         print("\n\nSuccess!\n")
+        sleep(5.0)
+    elif OP_ERR == ret_code:
+        print("\n\nServer unable to process informtion provided\n\n")
+        sleep(5.0)
+    elif OP_EXIST == ret_code:
+        print("\n\nInformation already exists in database\n\n")
+        sleep(5.0)
+    elif OP_MSGINVAL == ret_code:
+        print("\n\nServer unable to process informtion provided: Invalid message\n\n")
+        sleep(5.0)
+    elif OP_UNKNOWN == ret_code:
+        print("\n\nAn unknown error has occurred during this operation\n\n")
         sleep(5.0)
 
 def menu(client, instructions):
     profile = Profile()
-    
+
     print('''
             1) Login
             2) Sign Up
             3) Exit
+            4) Help
             ''')
     
     while True:
@@ -45,5 +60,12 @@ def menu(client, instructions):
           sign_up(profile, client, instructions)
       if user_input == '3':
           send_full_data(client, instructions.pack_instructions(TERMINATE_SESSION, 0), INSTRUCTION_HDR_LEN)
-
+          
           break
+      if user_input == '4':
+          print('''
+            1) Login
+            2) Sign Up
+            3) Exit
+            4) Help
+            ''')
