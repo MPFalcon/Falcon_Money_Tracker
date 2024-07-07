@@ -35,6 +35,7 @@ bool session_menu_active(int client, struct pollfd * client_poll)
             break;
         case SIGNUP:
             user_profile = create_profile(instruction_set, meta_data, client);
+            printf("\nRunning\n");
 
             break;
         case ADD_BANK:

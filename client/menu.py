@@ -27,10 +27,19 @@ def sign_up(profile, client, instructions):
     profile.email = input("\n> What's your email: ")
 
     data_len_sets = (len(profile.username), len(profile.password), len(profile.email))
+
+    
     bytes_formats = ("!Q", "!Q", "!Q")
 
     send_full_data(client, instructions.pack_instructions(SIGNUP, calcsize("!QQQ")), INSTRUCTION_HDR_LEN)
     send_full_data(client, profile.packed_metadata(bytes_formats, data_len_sets), calcsize("!QQQ"))
+    
+    if (data_len_sets[0] > MAX_NAME_LEN) or (data_len_sets[2] > MAX_PASS_LEN) or (data_len_sets[2] > MAX_NAME_LEN):
+        ret_code = get_code(recv_full_data(client, 2))
+        process_return_code(ret_code)
+        
+        return
+
 
     for i in (profile.username, profile.password, profile.email):
         send_full_data(client, i.encode("utf-8"), len(i))
@@ -40,9 +49,8 @@ def sign_up(profile, client, instructions):
     print(f"\n\nNew Profile ID: {profile.profile_id}\n\n")
 
     ret_code = get_code(recv_full_data(client, 2))
-
     process_return_code(ret_code)
-
+    
 def menu(client, instructions):
     profile = Profile()
 

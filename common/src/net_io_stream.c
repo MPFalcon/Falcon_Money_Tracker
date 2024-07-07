@@ -20,6 +20,10 @@ ssize_t receive_bytes(int read_fd, void * buffer, ssize_t num_of_bytes)
 {
     ssize_t total_bytes = ERROR;
 
+    int       err     = 0;
+    socklen_t err_len = 0;
+    int       ret_val = 0;
+
     errno = 0;
 
     if (NULL == buffer)
@@ -38,9 +42,9 @@ ssize_t receive_bytes(int read_fd, void * buffer, ssize_t num_of_bytes)
 
     total_bytes = 0;
 
-    int       err     = 0;
-    socklen_t err_len = sizeof(err);
-    int ret_val = getsockopt(read_fd, SOL_SOCKET, SO_ERROR, &err, &err_len);
+    err     = 0;
+    err_len = sizeof(err);
+    ret_val = getsockopt(read_fd, SOL_SOCKET, SO_ERROR, &err, &err_len);
 
     while ((num_of_bytes > total_bytes) && (ERROR != err) && (ERROR != ret_val))
     {
@@ -87,6 +91,10 @@ ssize_t send_bytes(int write_fd, void * buffer, ssize_t num_of_bytes)
 {
     ssize_t total_bytes = ERROR;
 
+    int       err     = 0;
+    socklen_t err_len = 0;
+    int       ret_val = 0;
+
     errno = 0;
 
     if (NULL == buffer)
@@ -105,9 +113,9 @@ ssize_t send_bytes(int write_fd, void * buffer, ssize_t num_of_bytes)
 
     total_bytes = 0;
 
-    int       err     = 0;
-    socklen_t err_len = sizeof(err);
-    int ret_val = getsockopt(write_fd, SOL_SOCKET, SO_ERROR, &err, &err_len);
+    err     = 0;
+    err_len = sizeof(err);
+    ret_val = getsockopt(write_fd, SOL_SOCKET, SO_ERROR, &err, &err_len);
 
     while ((num_of_bytes > total_bytes) && (ERROR != err) && (ERROR != ret_val))
     {

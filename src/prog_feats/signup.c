@@ -45,10 +45,11 @@ profile_t * create_profile(instruction_hdr_t * instructions,
     for (int idx = 0; required_len_count > idx; idx++)
     {
         (void)convert_endianess64(&required_lens[idx]);
+        printf("\n\n%lu\n\n", required_lens[idx]);
     }
 
-    if ((MAX_NAME_LEN > required_lens[0]) ||
-        (MAX_PASS_LEN > required_lens[1]) || (MAX_NAME_LEN > required_lens[2]))
+    if ((MAX_NAME_LEN < required_lens[0]) ||
+        (MAX_PASS_LEN < required_lens[1]) || (MAX_NAME_LEN < required_lens[2]))
     {
         err_code = OP_MSGINVAL;
 
