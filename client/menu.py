@@ -1,6 +1,23 @@
 import os
 from cli import *
 
+def process_return_code(ret_code):
+    if OP_SUCCESS == ret_code:
+        print("\n\nSuccess!\n")
+        sleep(5.0)
+    elif OP_ERR == ret_code:
+        print("\n\nServer unable to process informtion provided\n\n")
+        sleep(5.0)
+    elif OP_EXIST == ret_code:
+        print("\n\nInformation already exists in database\n\n")
+        sleep(5.0)
+    elif OP_MSGINVAL == ret_code:
+        print("\n\nServer unable to process informtion provided: Invalid message\n\n")
+        sleep(5.0)
+    elif OP_UNKNOWN == ret_code:
+        print("\n\nAn unknown error has occurred during this operation\n\n")
+        sleep(5.0)
+
 def get_code(byte_code):
     return unpack_from("!H", byte_code)[0]
 
@@ -24,21 +41,7 @@ def sign_up(profile, client, instructions):
 
     ret_code = get_code(recv_full_data(client, 2))
 
-    if OP_SUCCESS == ret_code:
-        print("\n\nSuccess!\n")
-        sleep(5.0)
-    elif OP_ERR == ret_code:
-        print("\n\nServer unable to process informtion provided\n\n")
-        sleep(5.0)
-    elif OP_EXIST == ret_code:
-        print("\n\nInformation already exists in database\n\n")
-        sleep(5.0)
-    elif OP_MSGINVAL == ret_code:
-        print("\n\nServer unable to process informtion provided: Invalid message\n\n")
-        sleep(5.0)
-    elif OP_UNKNOWN == ret_code:
-        print("\n\nAn unknown error has occurred during this operation\n\n")
-        sleep(5.0)
+    process_return_code(ret_code)
 
 def menu(client, instructions):
     profile = Profile()

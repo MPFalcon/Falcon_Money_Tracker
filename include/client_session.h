@@ -7,15 +7,9 @@
 #ifndef CLIENT_SESSION_H
 #    define CLIENT_SESSION_H
 
-#    include "net_io_stream.h"
+#    include "common/entities.h"
 
 #    define AUTH_CLIENT 0xfeb4593fecc67839ULL
-
-typedef struct __attribute__((packed)) INSTRUCTION_HEADER
-{
-    uint16_t op_code;
-    uint64_t byte_size;
-} instruction_hdr_t;
 
 /**
  * @brief                Await instructions from the user
