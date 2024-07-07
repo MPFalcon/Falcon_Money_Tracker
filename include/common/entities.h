@@ -7,6 +7,8 @@
 #ifndef ENTITIES_H
 #    define ENTITIES_H
 
+#    include <mysql.h>
+
 #    include "net_io_stream.h"
 
 #    define MAX_BANK_LEN 200

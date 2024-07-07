@@ -40,13 +40,8 @@ def sign_up(profile, client, instructions):
         
         return
 
-
     for i in (profile.username, profile.password, profile.email):
         send_full_data(client, i.encode("utf-8"), len(i))
-
-    profile.profile_id = unpack("!Q", recv_full_data(client, calcsize("!Q")))[0]
-
-    print(f"\n\nNew Profile ID: {profile.profile_id}\n\n")
 
     ret_code = get_code(recv_full_data(client, 2))
     process_return_code(ret_code)
