@@ -187,8 +187,8 @@ static int server_setup(int svr_sock, uint16_t port)
 
     // Ensure address and socket can be used again
 
-    err_code = setsockopt(
-        svr_sock, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt));
+    err_code =
+        setsockopt(svr_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
     if (E_SUCCESS != err_code)
     {
