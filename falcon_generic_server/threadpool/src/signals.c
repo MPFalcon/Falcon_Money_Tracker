@@ -12,27 +12,21 @@ void signal_handler(int signal)
     switch (signal)
     {
         case SIGINT:
-            DEBUG_PRINT(
-                "\n\nNOTE [x]  SIGINT detected - Commencing graceful "
-                "shutdown... : %s",
-                __func__);
+            (void)print_note(
+                "SIGINT detected - Commencing graceful "
+                "shutdown...",
+                __func__,
+                SUCCESS);
             signal_flag_g = SIGINT_TRIGGERED;
 
             break;
         case SIGUSR1:
-            DEBUG_PRINT(
-                "\n\nNOTE [x]  SIGUSR1 detected - Commencing graceful "
-                "shutdown... : %s",
-                __func__);
-            signal_flag_g = SIGINT_TRIGGERED;
-
-            break;
-        case SIGPIPE:
-            DEBUG_PRINT(
-                "\n\nNOTE [x]  SIGPIPE detected - Commencing graceful "
-                "shutdown... : %s",
-                __func__);
-            signal_flag_g = SIGINT_TRIGGERED;
+            (void)print_note(
+                "SIGUSR1 detected - Commencing graceful "
+                "shutdown...",
+                __func__,
+                SUCCESS);
+            signal_flag_g = SIGUSR1_TRIGGERED;
 
             break;
         default:
@@ -52,22 +46,21 @@ int signal_action_setup(void)
 
     err_code = sigaction(SIGINT, &action, NULL);
 
-    if (E_SUCCESS != err_code)
+    if (SUCCESS != err_code)
     {
+        DEBUG_PRINT("\n\nERROR [x]  Error occurred in sigaction(): %s\n\n",
+                    __func__);
+                    
         goto EXIT;
     }
 
     err_code = sigaction(SIGUSR1, &action, NULL);
 
-    if (E_SUCCESS != err_code)
+    if (SUCCESS != err_code)
     {
-        goto EXIT;
-    }
+        DEBUG_PRINT("\n\nERROR [x]  Error occurred in sigaction(): %s\n\n",
+                    __func__);
 
-    err_code = sigaction(SIGPIPE, &action, NULL);
-
-    if (E_SUCCESS != err_code)
-    {
         goto EXIT;
     }
 

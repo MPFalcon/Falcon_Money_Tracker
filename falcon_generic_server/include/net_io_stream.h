@@ -6,18 +6,19 @@
 
 #ifndef NET_IO_STREAM_H
 #    define NET_IO_STREAM_H
-#    define _GNU_SOURCE
 
 #    include <netinet/in.h>
 #    include <poll.h>
+#    include <netdb.h>
 #    include <sys/socket.h>
 #    include <sys/types.h>
 
 #    include "print_utilities.h"
+#    include "threadpool.h"
 #    include "signals.h"
 
-#    define SIGNAL_IDLE 0
-#    define MAX_MSG_LEN 4098
+#    define SIGNAL_IGNORED 0
+#    define MAX_MSG_LEN    4098
 typedef struct net_meta_data
 {
     ssize_t bytes_received;
@@ -89,6 +90,13 @@ int convert_endianess32(void * bytes);
  *              FAILURE: 1
  */
 int convert_endianess64(void * bytes);
+
+/**
+ * @brief       Safe wrapper function for close()
+ * 
+ * @param fd    File descriptor
+ */
+void safe_close(int file_fd);
 
 #endif /* NET_IO_STREAM_H */
 

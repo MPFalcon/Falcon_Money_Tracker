@@ -18,7 +18,6 @@
 #    include <sys/types.h>
 #    include <unistd.h>
 
-#    define ERROR        -1
 #    define E_SUCCESS    0
 #    define E_FAILURE    1
 #    define DEFAULT_BASE 10

@@ -236,4 +236,27 @@ EXIT:
     return err_code;
 }
 
+void safe_close(int file_fd)
+{
+    int err = E_FAILURE;
+
+    if (file_fd <= STDERR_FILENO)
+    {
+        DEBUG_PRINT("\n\nERROR [x]  File descriptor #%d cannot be closed : %s\n\n", file_fd, __func__);
+
+        goto EXIT;
+    }
+
+    err = close(file_fd);
+
+    if (SUCCESS != err)
+    {
+        DEBUG_PRINT("\n\nERROR [x]  Error occurred in close() : %s\n\n", __func__);
+    }
+
+EXIT:
+
+    return;
+}
+
 /** end of file **/
