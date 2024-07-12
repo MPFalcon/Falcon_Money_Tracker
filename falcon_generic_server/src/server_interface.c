@@ -3,7 +3,6 @@
 #    include "../include/server_interface.h"
 
 #    define MAX_PORT_STR_LEN 6
-#    define BACKLOG_CAPACITY 20
 
 /**
  * @brief               Initiate server
