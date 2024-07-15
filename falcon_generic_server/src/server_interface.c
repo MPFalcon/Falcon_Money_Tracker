@@ -28,12 +28,21 @@ static int server_setup(int          * svr_sock,
  */
 static int server_shutdown(int svr_sock, threadpool_t * p_threadpool);
 
-int setup_driver(uint32_t thread_count, uint16_t port, job_f const_func, free_f free_func, void * args)
+int setup_driver(config_t * configurations)
 {
     int err_code = E_FAILURE;
     int svr_sock = 0;
 
-    threadpool_t * threadpool = threadpool_create(thread_count);
+    if (NULL == configurations)
+    {
+        DEBUG_PRINT(
+            "\n\nERROR [x]  Something went wrong creating threadpool: %s\n\n",
+            __func__);
+
+        goto EXIT;
+    }
+
+    threadpool_t * threadpool = threadpool_create(configurations->thread_count);
 
     if (NULL == threadpool)
     {
@@ -44,7 +53,7 @@ int setup_driver(uint32_t thread_count, uint16_t port, job_f const_func, free_f 
         goto EXIT;
     }
 
-    err_code = server_setup(&svr_sock, port);
+    err_code = server_setup(&svr_sock, configurations->port);
 
     if (SUCCESS != err_code)
     {
@@ -55,7 +64,7 @@ int setup_driver(uint32_t thread_count, uint16_t port, job_f const_func, free_f 
 
     // Manage FDs with poll
 
-    setup_poll(threadpool, const_func, free_func, args, svr_sock);
+    setup_poll(threadpool, configurations->requested_func, configurations->requested_free_func, configurations->requested_args, configurations->timeout, svr_sock);
 
     // Shut server down
 

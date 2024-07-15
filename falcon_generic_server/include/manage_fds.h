@@ -36,7 +36,7 @@ typedef struct session
  * @return            SUCCESS: 0
  *                    FAILURE: 1
  */
-int setup_poll(threadpool_t * threadpool, job_f const_func, free_f free_func, void * args, int svr_sock);
+int setup_poll(threadpool_t * threadpool, job_f const_func, free_f free_func, void * args, int timeout, int svr_sock);
 
 #endif /* MANAGE_FDS_H */
 

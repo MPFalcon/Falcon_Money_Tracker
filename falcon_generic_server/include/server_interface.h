@@ -9,26 +9,25 @@
 
 #    include "manage_fds.h"
 
-/**
- * @brief               
- *
- * @param port          
+typedef struct server_configuration
+{
+    uint16_t port;
+    uint32_t thread_count;
+    int      timeout;
+    job_f    requested_func;
+    free_f   requested_free_func;
+    void *   requested_args;
+} config_t
 
- */
-
 /**
- * @brief               Set the up driver function to start up server
+ * @brief                Set the up driver function to start up server
  * 
- * @param thread_count  Number of threads to spin up
- * @param port          Requested port number to operate on
- * @param const_func    User-defined function
- * @param free_func     User-defined function to free associated memory
- * @param args          User-defined arguments
+ * @param configurations Valid instance of configuration settings
  *
- * @return              SUCCESS: 0
- *                      FAILURE: 1 
+ * @return               SUCCESS: 0
+ *                       FAILURE: 1 
  */
-int setup_driver(uint32_t thread_count, uint16_t port, job_f const_func, free_f free_func, void * args);
+int setup_driver(config_t * configurations);
 
 #endif /* SERVER_INTERFACE_H */
 
