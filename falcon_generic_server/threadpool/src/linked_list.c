@@ -612,7 +612,7 @@ list_t * list_find_all_occurrences(list_t * p_list, void ** pp_search_data)
 
             if (E_SUCCESS != node_check)
             {
-                (void)list_delete(&p_new_list);
+                (void)delete_list(&p_new_list);
                 p_new_list = NULL;
                 print_error("There was an error adding to nodes new list", __func__);
             }
@@ -718,7 +718,7 @@ EXIT:
     return err;
 }
 
-int list_delete(list_t ** pp_list_address)
+int delete_list(list_t ** pp_list_address)
 {
     int err = E_FAILURE;
 

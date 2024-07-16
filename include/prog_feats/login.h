@@ -9,7 +9,7 @@
 
 #    include "common/entities.h"
 
-int auth_client(int profile_id, char * password, char * username_email);
+// int auth_client(int profile_id, char * password, char * username_email);
 
 #endif /* LOGIN_H */
 

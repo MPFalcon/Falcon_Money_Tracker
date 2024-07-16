@@ -206,7 +206,7 @@ int list_clear(list_t * list);
  * @param list_address pointer to list pointer
  * @return 0 on success, non-zero value on failure
  */
-int list_delete(list_t ** list_address);
+int delete_list(list_t ** list_address);
 
 /**
  * @brief frees an item and its associated memory

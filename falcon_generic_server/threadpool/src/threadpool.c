@@ -179,7 +179,7 @@ int threadpool_destroy(threadpool_t ** pool_pp)
         threadpool_shutdown((*pool_pp));
     }
 
-    list_delete(&((*pool_pp)->pool_list));
+    delete_list(&((*pool_pp)->pool_list));
 
     free((*pool_pp)->threads);
     (*pool_pp)->threads = NULL;
@@ -434,7 +434,7 @@ static int setup_thread_pool(threadpool_t * p_new_pool, size_t thread_count)
         DEBUG_PRINT("\n\nERROR [x]  Failed to create threads: %s\n\n",
                     __func__);
 
-        list_delete(&p_new_pool->pool_list);
+        delete_list(&p_new_pool->pool_list);
 
         free(p_new_pool);
 
@@ -445,7 +445,7 @@ static int setup_thread_pool(threadpool_t * p_new_pool, size_t thread_count)
 
     if (E_SUCCESS != err_code)
     {
-        list_delete(&p_new_pool->pool_list);
+        delete_list(&p_new_pool->pool_list);
 
         free(p_new_pool->threads);
         p_new_pool->threads = NULL;

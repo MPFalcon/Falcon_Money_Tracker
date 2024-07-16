@@ -4,7 +4,8 @@ int main(int argc, char ** argv)
 {
     int err_code = EXIT_FAILURE;
 
-    options_t options = { .port = DEFAULT_PORT, .port_flag = false };
+    options_t options = { .threads = DEFAULT_THREADS, .port = DEFAULT_PORT, .port_flag = false, .threads_flag = false};
+    config_t  server_config = { 0 };
 
     err_code = signal_action_setup();
 
@@ -28,7 +29,14 @@ int main(int argc, char ** argv)
         goto EXIT;
     }
 
-    err_code = setup_driver(options.port);
+    server_config.port = options.port;
+    server_config.thread_count = options.threads;
+    server_config.requested_func = (session_func)session_menu_active;
+    server_config.requested_args = NULL;
+    server_config.requested_free_func = NULL;
+    server_config.timeout = 5;
+
+    err_code = setup_driver(&server_config);
 
     if (E_FAILURE == err_code)
     {

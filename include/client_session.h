@@ -16,9 +16,9 @@
  * @brief                Await instructions from the user
  *
  * @param client         Client socket
- * @param client_poll    Valid client poll instance
+ * @param args           Valid arguments instance
  */
-bool session_menu_active(int client, struct pollfd * client_poll);
+void * session_menu_active(int client, void * args);
 
 #endif /* CLIENT_SESSION_H */
 

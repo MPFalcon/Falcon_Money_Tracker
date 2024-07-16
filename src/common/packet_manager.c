@@ -1,12 +1,12 @@
-#include "packet_manager.h"
+#include "common/packet_manager.h"
 
 #define HDR_LEN sizeof(header_t)
 
 void * recieve_data(int client, meta_data_t meta_data)
 {
-    void * master_buffer = NULL;
-    header_t * curr_header = NULL;
-    uint64_t   offset = 0;
+    void *     master_buffer = NULL;
+    header_t * curr_header   = NULL;
+    uint64_t   offset        = 0;
 
     curr_header = (header_t *)calloc(1, HDR_LEN);
 
@@ -79,8 +79,6 @@ int send_data(int client, meta_data_t meta_data, void * buffer, uint64_t num_of_
 
         goto EXIT;
     }
-
-
 
     for (uint64_t idx = 0; out_going_header.total_packets > idx; idx++)
     {

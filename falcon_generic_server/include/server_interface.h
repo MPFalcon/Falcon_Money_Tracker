@@ -11,12 +11,12 @@
 
 typedef struct server_configuration
 {
-    uint16_t port;
-    uint32_t thread_count;
-    int      timeout;
-    job_f    requested_func;
-    free_f   requested_free_func;
-    void *   requested_args;
+    uint16_t     port;
+    uint32_t     thread_count;
+    int          timeout;
+    session_func requested_func;
+    free_f       requested_free_func;
+    void *       requested_args;
 } config_t;
 
 /**

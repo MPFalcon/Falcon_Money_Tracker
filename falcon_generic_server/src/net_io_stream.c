@@ -36,7 +36,7 @@ ssize_t receive_bytes(int read_fd, void * main_buffer, ssize_t num_of_bytes)
     }
 
     total_bytes =
-                recv(read_fd, main_buffer, num_of_bytes, 0);
+                recv(read_fd, main_buffer, num_of_bytes, O_NONBLOCK);
     
     if (SUCCESS != errno)
     {
@@ -98,7 +98,7 @@ ssize_t send_bytes(int write_fd, void * main_buffer, ssize_t num_of_bytes)
 
     while (num_of_bytes > total_bytes)
     {
-        if((ERR == err) || (ERR == ret_val))
+        if((ERROR == err) || (ERROR == ret_val))
         {
             goto EXIT;
         }
@@ -122,7 +122,7 @@ ssize_t send_bytes(int write_fd, void * main_buffer, ssize_t num_of_bytes)
 SEND:
 
     total_bytes =
-            send(write_fd, buffer, num_of_bytes, 0);
+            send(write_fd, buffer, num_of_bytes, O_NONBLOCK);
             
     if (SUCCESS != errno)
     {

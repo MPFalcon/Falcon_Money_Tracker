@@ -9,7 +9,7 @@ void * session_menu_active(int client, void * args)
     };
 
     profile_t * user_profile = NULL;
-    data_t * opcode = NULL;
+    data_t *    opcode       = NULL;
 
     if (NULL == args)
     {
@@ -22,7 +22,7 @@ void * session_menu_active(int client, void * args)
 
     opcode = (data_t *)recieve_data(client, meta_data);
 
-    switch ()
+    switch (opcode->unsign16)
     {
         case RECV_READY:
 
@@ -34,7 +34,7 @@ void * session_menu_active(int client, void * args)
 
             break;
         case SIGNUP:
-            user_profile = create_profile(instruction_set, meta_data, client);
+            //user_profile = create_profile(instruction_set, meta_data, client);
             printf("\nRunning\n");
 
             break;

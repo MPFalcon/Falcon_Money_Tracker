@@ -57,17 +57,6 @@ typedef enum return_code
     OP_UNKNOWN  = 0xbadf
 } ret_code_t;
 
-/**
- * @brief                       Recieve instruction code from client
- *                              for the server to intepret
- *
- * @param client                Client FD
- * @param meta_data             Metadata structure
- *
- * @return                      Instruction set instance
- */
-instruction_hdr_t * receive_instructions(int client, meta_data_t meta_data);
-
 #endif /* ENTITIES_H */
 
 /*** end of file ***/

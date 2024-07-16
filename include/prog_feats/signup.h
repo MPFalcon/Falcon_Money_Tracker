@@ -18,9 +18,9 @@
  *
  * @return              Valid profile instance
  */
-profile_t * create_profile(instruction_hdr_t * instructions,
-                           meta_data_t         meta_data,
-                           int                 client);
+// profile_t * create_profile(instruction_hdr_t * instructions,
+//                            meta_data_t         meta_data,
+//                            int                 client);
 
 #endif /* SIGNUP_H */
 
