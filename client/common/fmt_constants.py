@@ -3,6 +3,7 @@ from struct import *
 from fcntl import *
 from time import *
 from select import *
+from random import *
 
 import errno
 
@@ -14,7 +15,8 @@ MAX_BANK_LEN = 200
 MAX_NAME_LEN = 50
 MAX_PASS_LEN = 100
 
-INSTRUCTION_HDR_LEN = 9
+DEFAULT_BUFFER_LEN = 1000
+DEFAULT_PACKET_LEN = (32 + DEFAULT_BUFFER_LEN)
 
 AUTH_CLIENT       = 0xfeb4593fecc67839
 
@@ -37,37 +39,12 @@ OP_EXIST      = 0xbeeb
 OP_MSGINVAL   = 0xbcdf
 OP_NOTFOUND   = 0xbcdc
 OP_UNKNOWN    = 0xbadf
-class Instruction_Header:
-    def __init__(self) -> None:
-        self.op_code   = 0x0
-        self.byte_size = 0
-    
-    def pack_instructions(self, op_code, byte_size):
-        self.op_code   = op_code
-        self.byte_size = byte_size
-
-        return pack("!HQ", self.op_code, self.byte_size)
-    
-    def unpack_instructions(bytes):
-        return unpack_from("!HQ", bytes)
-
-    def show_instructions(self):
-        print(f"({self.op_code}, {self.byte_size})")
-
 class Profile:
     def __init__(self) -> None:
         self.username   = ""
         self.password   = ""
         self.email      = ""
         self.profile_id = 0
-    
-    def packed_metadata(self, struct_formats, data_len_set):
-        packed_bytes = b""
-
-        for i in range(len(data_len_set)):
-            packed_bytes += pack(struct_formats[i], data_len_set[i])
-
-        return packed_bytes
         
     
 def recv_full_data(client, expected_len):
@@ -102,3 +79,60 @@ def send_full_data(client, buffer, buffer_size):
             if e.errno != errno.EAGAIN:
                 raise e
             select([], [client], [])  # This blocks until
+
+def send_data(client, bytes_to_send):
+    offset = 0
+    packet = b''
+    seq_num = randint(0, 2000000)
+    total_size = len(bytes_to_send)
+    bytes_size = 0
+    total_packets = ((len(bytes_to_send) // DEFAULT_BUFFER_LEN) + 1)
+
+    for i in range(0, total_packets):
+        if total_packets == (i + 1):
+            bytes_size = (total_size - offset)
+            packet = pack("!iQQQ", seq_num, total_size, bytes_size, total_packets) + bytes_to_send[offset:-1].ljust(DEFAULT_BUFFER_LEN, b'\x00')
+            send_full_data(client, packet, DEFAULT_PACKET_LEN)
+        else:
+            bytes_size = DEFAULT_BUFFER_LEN
+            packet = pack("!iQQQ", seq_num, total_size, bytes_size, total_packets) + bytes_to_send[offset:(offset + DEFAULT_BUFFER_LEN)]
+            offset = (offset + DEFAULT_BUFFER_LEN)
+            send_full_data(client, packet, DEFAULT_PACKET_LEN)
+
+def recieve_data(client):
+    offset = 0
+    data_to_return = b''
+    seq_num = 0
+    total_size = 0
+    bytes_size = 0
+    total_packets = 0
+
+    temp_bytes = recv_full_data(client, DEFAULT_PACKET_LEN)
+
+    packet = unpack("!iQQQ", temp_bytes[:32])
+
+    seq_num = packet[0]
+    total_size = packet[1]
+    bytes_size = packet[2]
+    total_packets = packet[3]
+    
+    data_to_return += temp_bytes[32:bytes_size]
+    
+    offset += bytes_size
+
+    for i in range(1, total_packets):
+        temp_bytes = recv_full_data(client, DEFAULT_PACKET_LEN)
+
+        packet = unpack("!iQQQ", temp_bytes[:32])
+
+        seq_num = packet[0]
+        total_size = packet[1]
+        bytes_size = packet[2]
+        total_packets = packet[3]
+        
+        data_to_return += temp_bytes[32:bytes_size]
+        
+        offset += bytes_size
+
+    if not (total_size == offset):
+        print("\n\nERROR [x]  Failed to recieve full packets\n\n")

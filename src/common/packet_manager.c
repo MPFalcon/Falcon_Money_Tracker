@@ -26,6 +26,11 @@ void * recieve_data(int client, meta_data_t meta_data)
         goto EXIT;
     }
 
+    (void)convert_endianess32(&curr_header->seq_num);
+    (void)convert_endianess64(&curr_header->total_size);
+    (void)convert_endianess64(&curr_header->byte_size);
+    (void)convert_endianess64(&curr_header->total_packets);
+
     master_buffer = calloc(1, curr_header->total_size);
 
     if (NULL == master_buffer)
@@ -49,6 +54,11 @@ void * recieve_data(int client, meta_data_t meta_data)
 
             continue;
         }
+
+        (void)convert_endianess32(&curr_header->seq_num);
+        (void)convert_endianess64(&curr_header->total_size);
+        (void)convert_endianess64(&curr_header->byte_size);
+        (void)convert_endianess64(&curr_header->total_packets);
 
         memcpy(((uint8_t *)master_buffer + offset), &curr_header->bytes, curr_header->byte_size);
 
@@ -84,6 +94,7 @@ int send_data(int client, meta_data_t meta_data, void * buffer, uint64_t num_of_
     {
         if (out_going_header.total_packets == (idx + 1))
         {
+            memset(&out_going_header.bytes, 0x00, DEFAULT_BUFFER_SIZE);
             out_going_header.byte_size = (out_going_header.total_size - offset);
             memcpy(&out_going_header.bytes, ((uint8_t *)buffer + offset), out_going_header.byte_size);
         }
@@ -94,14 +105,24 @@ int send_data(int client, meta_data_t meta_data, void * buffer, uint64_t num_of_
             offset += out_going_header.byte_size;
         }
 
-        meta_data.bytes_received = receive_bytes(client, &out_going_header, HDR_LEN);
+        (void)convert_endianess32(&out_going_header.seq_num);
+        (void)convert_endianess64(&out_going_header.total_size);
+        (void)convert_endianess64(&out_going_header.byte_size);
+        (void)convert_endianess64(&out_going_header.total_packets);
+
+        meta_data.bytes_received = send_bytes(client, &out_going_header, HDR_LEN);
 
         if (ERROR == meta_data.bytes_received)
         {
-            DEBUG_PRINT("\n\nERROR [x]  Error occurred in receive_bytes() : %s\n\n", __func__);
+            DEBUG_PRINT("\n\nERROR [x]  Error occurred in send_bytes() : %s\n\n", __func__);
 
             continue;
         }
+
+        (void)convert_endianess32(&out_going_header.seq_num);
+        (void)convert_endianess64(&out_going_header.total_size);
+        (void)convert_endianess64(&out_going_header.byte_size);
+        (void)convert_endianess64(&out_going_header.total_packets);
     }
 
 EXIT:

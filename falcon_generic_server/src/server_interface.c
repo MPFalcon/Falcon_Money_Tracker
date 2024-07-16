@@ -9,7 +9,7 @@
  *
  * @param svr_sock      Server socket
  * @param port          Valid port number to listen on
- *
+ * 
  * @return              SUCCESS: 0
  *                      FAILURE: 1
  */
@@ -110,8 +110,8 @@ static int server_setup(int          * svr_sock,
 
     socklen_t server_addr_len = sizeof(struct sockaddr_in);
 
-    struct addrinfo * results = NULL;
     struct addrinfo * curr_results = NULL;
+    struct addrinfo * results = NULL;
 
     struct addrinfo hints = { 0 };
    
@@ -161,6 +161,8 @@ static int server_setup(int          * svr_sock,
 
         goto EXIT;
     }
+
+    fcntl(*svr_sock, F_SETFD, O_NONBLOCK);
     
     for (curr_results = results; curr_results != NULL; curr_results = curr_results->ai_next)
     {
@@ -180,6 +182,9 @@ static int server_setup(int          * svr_sock,
         }
     }
     
+    freeaddrinfo(curr_results);
+    curr_results = NULL;
+
     if (SUCCESS != err_code)
     {
         DEBUG_PRINT("\n\nERROR [x]  Failed to bind socket to address: %s\n\n",
@@ -206,6 +211,13 @@ EXIT:
 static int server_shutdown(int svr_sock, threadpool_t * p_threadpool)
 {
     int err_code = E_FAILURE;
+
+    if (NULL == p_threadpool)
+    {
+        DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
+
+        goto EXIT;
+    }
 
     // err_code = shutdown(svr_sock, SHUT_RDWR);
 

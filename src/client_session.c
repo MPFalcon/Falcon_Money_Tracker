@@ -4,71 +4,88 @@
 
 void * session_menu_active(int client, void * args)
 {
-    meta_data_t meta_data = {
-        .bytes_received = 0, .bytes_sent = 0, .msg_len = 0, .msg = { 0 }
-    };
+    printf("\n\nRUNNING\n\n");
+//     meta_data_t meta_data = {
+//         .bytes_received = 0, .bytes_sent = 0, .msg_len = 0, .msg = { 0 }
+//     };
 
-    profile_t * user_profile = NULL;
-    data_t *    opcode       = NULL;
+//     profile_t * user_profile = NULL;
+//     data_t *    opcode       = NULL;
 
-    if (NULL == args)
-    {
-        DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
+//     if (NULL == args)
+//     {
+//         DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
 
-        goto EXIT;
-    }
+//         goto EXIT;
+//     }
 
-    (void)args;
+//     (void)args;
 
-    opcode = (data_t *)recieve_data(client, meta_data);
+//     if (AUTH_CLIENT != ((data_t *)recieve_data(client, meta_data))->unsign128)
+//     {
+//         DEBUG_PRINT("\n\nERROR [x]  Unauthorized client detected - Terminating Connection... : %s\n\n", __func__);
 
-    switch (opcode->unsign16)
-    {
-        case RECV_READY:
+//         goto EXIT;
+//     }
 
-            break;
-        case SEND_READY:
+//     opcode = (data_t *)recieve_data(client, meta_data);
 
-            break;
-        case LOGIN:
+//     switch (opcode->unsign16)
+//     {
+//         case RECV_READY:
 
-            break;
-        case SIGNUP:
-            //user_profile = create_profile(instruction_set, meta_data, client);
-            printf("\nRunning\n");
+//             break;
+//         case SEND_READY:
 
-            break;
-        case ADD_BANK:
+//             break;
+//         case LOGIN:
 
-            break;
-        case ADD_BALANCE:
+//             break;
+//         case SIGNUP:
+//             //user_profile = create_profile(instruction_set, meta_data, client);
+//             printf("\nRunning\n");
 
-            break;
-        case REMOVE_BANK:
+//             break;
+//         case ADD_BANK:
 
-            break;
-        case REMOVE_BALANCE:
+//             break;
+//         case ADD_BALANCE:
 
-            break;
-        case UPDATE_BANK:
+//             break;
+//         case REMOVE_BANK:
 
-            break;
-        case UPDATE_BALANCE:
+//             break;
+//         case REMOVE_BALANCE:
 
-            break;
-        case TERMINATE_SESSION:
+//             break;
+//         case UPDATE_BANK:
 
-            break;
-        default:
-            goto EXIT;
-    }
+//             break;
+//         case UPDATE_BALANCE:
 
-EXIT:
+//             break;
+//         case TERMINATE_SESSION:
 
-    free(user_profile);
-    user_profile = NULL;
+//             break;
+//         default:
+//             goto EXIT;
+//     }
+
+// EXIT:
+
+//     free(user_profile);
+//     user_profile = NULL;
 
     return NULL;
+}
+
+void free_session(void * args)
+{
+    if (NULL != args)
+    {
+        free(args);
+        args = NULL;
+    }
 }
 
 /*** end of file ***/

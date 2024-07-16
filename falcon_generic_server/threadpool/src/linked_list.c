@@ -45,12 +45,7 @@ static list_node_t * merge_sort(list_node_t ** pp_head_ref);
 
 void custom_free(void * p_mem_addr)
 {
-    // free(p_mem_addr);
-
-    // The values passed in are integers that are not calloced
-    // so it results in an invalid free
-
-    (void)p_mem_addr;
+    free(p_mem_addr);
 
     return;
 }
@@ -96,16 +91,9 @@ list_t * list_new(FREE_F p_customfree, CMP_F p_customcmp)
     p_new_list->tail = NULL;
     p_new_list->size = 0;
 
-    if (NULL == p_customcmp)
-    {
-        p_new_list->customfree = custom_free;
-    }
-    else
-    {
-        p_new_list->customfree = p_customfree;
-    }
+    p_new_list->customfree = (NULL == p_customfree) ? (FREE_F)custom_free : p_customfree;
 
-    p_new_list->compare_function = p_customcmp;
+    p_new_list->compare_function = (NULL == p_customcmp) ? (CMP_F)default_compare : p_customcmp;
 
 EXIT:
 

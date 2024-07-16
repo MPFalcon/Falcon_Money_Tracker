@@ -20,6 +20,13 @@
  */
 void * session_menu_active(int client, void * args);
 
+/**
+ * @brief       Free client session
+ * 
+ * @param args  Memory that needs to be freed
+ */
+void free_session(void * args);
+
 #endif /* CLIENT_SESSION_H */
 
 /*** end of file ***/

@@ -7,6 +7,11 @@
 
 #include "linked_list.h"
 
+#define STOP             0x1
+#define SHUTDOWN         0x2
+#define START            0x4
+#define BACKLOG_CAPACITY 20
+
 /**
  * @brief A threadpool type. Internals to be implemented by trainee.
  */

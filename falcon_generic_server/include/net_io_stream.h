@@ -18,7 +18,6 @@
 #    include "signals.h"
 
 #    define SIGNAL_IGNORED   0
-#    define BACKLOG_CAPACITY 20
 #    define MAX_MSG_LEN      4098
 typedef struct net_meta_data
 {

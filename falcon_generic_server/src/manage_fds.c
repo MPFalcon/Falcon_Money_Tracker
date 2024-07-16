@@ -61,13 +61,6 @@ int setup_poll(threadpool_t * threadpool, session_func const_func, free_f free_f
     int err_code = E_FAILURE;
     int event_occurred = 0;
 
-    if (NULL == threadpool)
-    {
-        DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
-
-        goto EXIT;
-    }
-
     manager_t poll_config = {
         .threadpool = threadpool,
         .const_func = const_func,
@@ -79,6 +72,13 @@ int setup_poll(threadpool_t * threadpool, session_func const_func, free_f free_f
         .poll_limit = BACKLOG_CAPACITY,
         .active_connections = 1
     };
+
+    if (NULL == threadpool)
+    {
+        DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
+
+        goto EXIT;
+    }
 
     poll_config.poll_list = (pollfd_t *)calloc(BACKLOG_CAPACITY, sizeof(pollfd_t));
 
@@ -93,22 +93,31 @@ int setup_poll(threadpool_t * threadpool, session_func const_func, free_f free_f
     poll_config.poll_list[0].events = POLLIN;
     poll_config.poll_list[0].revents = 0;
 
-    event_occurred = poll(poll_config.poll_list, poll_config.poll_limit, timeout);
-
-    if (ERROR == event_occurred)
+    for(;;)
     {
-        DEBUG_PRINT("\n\nERROR [x]  Error occurred in poll() : %s\n\n", __func__);
-
-        goto EXIT;
-    }
-    
-    while (SIGNAL_IGNORED == signal_flag_g)
-    {
-        
-
-        for (poll_config.idx = 0; poll_config.idx <= poll_config.poll_limit; poll_config.idx++)
+        if (SIGNAL_IGNORED != signal_flag_g)
         {
-            if (POLLIN == poll_config.poll_list[poll_config.idx].revents)
+            sleep(2);
+            break;
+        }
+
+        event_occurred = poll(poll_config.poll_list, poll_config.poll_limit, timeout);
+
+        if (ERROR == event_occurred)
+        {
+            DEBUG_PRINT("\n\nERROR [x]  Error occurred in poll() : %s\n\n", __func__);
+
+            goto EXIT;
+        }
+
+        for (poll_config.idx = 0; poll_config.poll_limit > poll_config.idx; poll_config.idx++)
+        {
+            if (poll_config.poll_list[poll_config.idx].fd <= STDERR_FILENO)
+            {
+                continue;
+            }
+
+            if (POLLIN == (POLLIN & poll_config.poll_list[poll_config.idx].revents))
             {
                 err_code = probe_fd(&poll_config);
 
@@ -120,7 +129,22 @@ int setup_poll(threadpool_t * threadpool, session_func const_func, free_f free_f
         }
     }
 
+    err_code = E_SUCCESS;
+
 EXIT:
+
+    if (NULL != threadpool)
+    {
+        pthread_mutex_lock(&threadpool->p_mutex_id);
+        threadpool->exit_flag = STOP;
+        pthread_mutex_unlock(&threadpool->p_mutex_id);
+    }
+
+    if (NULL != poll_config.poll_list)
+    {
+        free(poll_config.poll_list);
+        poll_config.poll_list = NULL;
+    }
 
     return err_code;
 }
@@ -129,7 +153,7 @@ static int probe_fd(manager_t * poll_config)
 {
     int err_code = E_FAILURE;
     int check_con = 0;
-    struct sockaddr client_skt = { 0 };
+    struct sockaddr * client_skt = NULL;
     socklen_t   client_skt_len = 0;
     session_t * new_session = NULL;
 
@@ -139,19 +163,11 @@ static int probe_fd(manager_t * poll_config)
 
         goto EXIT;
     }
-
+    
     if (poll_config->svr_sock == poll_config->poll_list[poll_config->idx].fd)
     {
-        new_session = (session_t *)calloc(1, sizeof(session_t));
-
-        if (NULL == new_session)
-        {
-            DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
-
-            goto EXIT;
-        }
-
-        poll_config->poll_list[(poll_config->active_connections + 1)].fd = accept(poll_config->svr_sock, &client_skt, &client_skt_len);
+        printf("\n\nnew connection\n\n");
+        poll_config->poll_list[(poll_config->active_connections + 1)].fd = accept(poll_config->svr_sock, client_skt, &client_skt_len);
 
         if (ERROR == poll_config->poll_list[(poll_config->active_connections + 1)].fd)
         {
@@ -160,10 +176,10 @@ static int probe_fd(manager_t * poll_config)
             goto EXIT;
         }
 
+        fcntl(poll_config->poll_list[(poll_config->active_connections + 1)].fd, F_SETFD, O_NONBLOCK);
+
         add_to_pfds(&poll_config->poll_list, poll_config->poll_list[(poll_config->active_connections + 1)].fd, &poll_config->active_connections, &poll_config->poll_limit);
-    }
-    else
-    {
+    
         new_session = (session_t *)calloc(1, sizeof(session_t));
 
         if (NULL == new_session)
@@ -175,7 +191,8 @@ static int probe_fd(manager_t * poll_config)
 
         new_session->associated_job = poll_config->const_func;
         new_session->custom_free    = poll_config->free_func;
-        new_session->client_poll_fd = &poll_config->poll_list[poll_config->idx];
+        new_session->client_poll_fd = &poll_config->poll_list[(poll_config->active_connections + 1)];
+        new_session->args           = poll_config->args;
 
         err_code = threadpool_add_job(poll_config->threadpool, (job_f)client_driver, (free_f)free_client_session, (void *)new_session);
 
@@ -183,7 +200,9 @@ static int probe_fd(manager_t * poll_config)
         {
             DEBUG_PRINT("\n\nERROR [x]  Error occurred in threadpool_add_job(): %s\n\n", __func__);
         }
-
+    }
+    else
+    {
         check_con = recv(poll_config->poll_list[poll_config->idx].fd, NULL, 1, O_NONBLOCK);
 
         if (0 == check_con)
@@ -191,6 +210,8 @@ static int probe_fd(manager_t * poll_config)
             del_from_pfds(poll_config->poll_list, poll_config->idx, &poll_config->active_connections);
         }
     }
+
+    err_code = E_SUCCESS;
 
 EXIT:
 
@@ -223,14 +244,14 @@ static void * client_driver(void * args)
     custom_job->client_fd = session->client_poll_fd->fd;
     session->client_poll_fd->fd *= -1;
     custom_job->args = session->args;
+
     session->associated_job(custom_job->client_fd, custom_job->args);
     session->custom_free(custom_job->args);
+
     session->client_poll_fd->fd *= -1;
     
+    free(custom_job);
     custom_job = NULL;
-    
-    free(session);
-    session = NULL;
 
 EXIT:
 
@@ -239,14 +260,11 @@ EXIT:
 
 static void free_client_session(void * data)
 {
-    args_t * custom_job = NULL;
-
+    printf("\n\nFreeing session\n\n");
     if (NULL != data)
     {
-       custom_job = (args_t *)data;
-
-       free(custom_job);
-       custom_job = NULL;
+       free(data);
+       data = NULL;
     }
 }
 

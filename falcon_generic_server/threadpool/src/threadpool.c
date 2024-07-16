@@ -1,11 +1,6 @@
 #include "../include/threadpool.h"
 #include "print_utilities.h"
 
-#define STOP             0x1
-#define SHUTDOWN         0x2
-#define START            0x4
-#define BACKLOG_CAPACITY 20
-
 /**
  * @brief   Data structure for queue node
  *

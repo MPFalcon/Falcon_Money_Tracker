@@ -13,10 +13,12 @@
 
 typedef union data
 {
-    uint64_t unsign;
+    __uint128_t unsign128;
+    uint64_t unsign64;
     uint32_t unsign32;
     uint16_t unsign16;
-    int64_t  sign;
+    __int128_t sign128;
+    int64_t  sign64;
     int32_t  sign32;
     int16_t  sign16;
     uint8_t  data_buffer[DEFAULT_BUFFER_SIZE];
@@ -25,7 +27,7 @@ typedef union data
 
 typedef struct falcon_header
 {
-    int       seq_num;
+    int32_t   seq_num;
     uint64_t  total_size;
     uint64_t  byte_size;
     uint64_t  total_packets;

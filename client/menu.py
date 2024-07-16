@@ -21,32 +21,18 @@ def process_return_code(ret_code):
 def get_code(byte_code):
     return unpack_from("!H", byte_code)[0]
 
-def sign_up(profile, client, instructions):
+def sign_up(profile, client):
     profile.username = input("\n> What's your new username: ")
     profile.password = input("\n> What's your new password: ")
     profile.email = input("\n> What's your email: ")
 
-    data_len_sets = (len(profile.username), len(profile.password), len(profile.email))
-
-    
-    bytes_formats = ("!Q", "!Q", "!Q")
-
-    send_full_data(client, instructions.pack_instructions(SIGNUP, calcsize("!QQQ")), INSTRUCTION_HDR_LEN)
-    send_full_data(client, profile.packed_metadata(bytes_formats, data_len_sets), calcsize("!QQQ"))
-    
-    if (data_len_sets[0] > MAX_NAME_LEN) or (data_len_sets[2] > MAX_PASS_LEN) or (data_len_sets[2] > MAX_NAME_LEN):
-        ret_code = get_code(recv_full_data(client, 2))
-        process_return_code(ret_code)
-        
-        return
-
     for i in (profile.username, profile.password, profile.email):
-        send_full_data(client, i.encode("utf-8"), len(i))
+        send_data(client, i.encode("utf-8"))
 
-    ret_code = get_code(recv_full_data(client, 2))
+    ret_code = get_code(recieve_data(client))
     process_return_code(ret_code)
     
-def menu(client, instructions):
+def menu(client):
     profile = Profile()
 
     print('''
@@ -60,13 +46,12 @@ def menu(client, instructions):
       
       user_input = input("\n>  ")
 
-      if user_input == '1':
-          send_full_data(client, instructions.pack_instructions(LOGIN, 0), INSTRUCTION_HDR_LEN)
-      if user_input == '2':
-          sign_up(profile, client, instructions)
-      if user_input == '3':
-          send_full_data(client, instructions.pack_instructions(TERMINATE_SESSION, 0), INSTRUCTION_HDR_LEN)
+      #if user_input == '1':
           
+      if user_input == '2':
+          send_data(client, pack("!H", SIGNUP))
+          sign_up(profile, client)
+      if user_input == '3':
           break
       if user_input == '4':
           print('''
