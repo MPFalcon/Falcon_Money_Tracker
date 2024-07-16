@@ -17,7 +17,7 @@ typedef struct server_configuration
     job_f    requested_func;
     free_f   requested_free_func;
     void *   requested_args;
-} config_t
+} config_t;
 
 /**
  * @brief                Set the up driver function to start up server

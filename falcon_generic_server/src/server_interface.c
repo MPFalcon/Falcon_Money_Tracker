@@ -32,6 +32,7 @@ int setup_driver(config_t * configurations)
 {
     int err_code = E_FAILURE;
     int svr_sock = 0;
+    threadpool_t * threadpool = NULL;
 
     if (NULL == configurations)
     {
@@ -42,7 +43,7 @@ int setup_driver(config_t * configurations)
         goto EXIT;
     }
 
-    threadpool_t * threadpool = threadpool_create(configurations->thread_count);
+    threadpool = threadpool_create(configurations->thread_count);
 
     if (NULL == threadpool)
     {
@@ -60,11 +61,22 @@ int setup_driver(config_t * configurations)
         DEBUG_PRINT(
             "\n\nERROR [x]  Something went wrong setting up the server: %s\n\n",
             __func__);
+        
+        goto EXIT;
     }
 
     // Manage FDs with poll
 
-    setup_poll(threadpool, configurations->requested_func, configurations->requested_free_func, configurations->requested_args, configurations->timeout, svr_sock);
+    err_code = setup_poll(threadpool, configurations->requested_func, configurations->requested_free_func, configurations->requested_args, configurations->timeout, svr_sock);
+
+    if (SUCCESS != err_code)
+    {
+        DEBUG_PRINT(
+            "\n\nERROR [x]  Something went wrong setting up the polling: %s\n\n",
+            __func__);
+
+        goto EXIT;
+    }
 
     // Shut server down
 
@@ -75,6 +87,8 @@ int setup_driver(config_t * configurations)
         DEBUG_PRINT(
             "\n\nERROR [x]  Something went wrong shuting down server: %s\n\n",
             __func__);
+
+        goto EXIT;
     }
 
     err_code = SUCCESS;
@@ -88,6 +102,7 @@ static int server_setup(int          * svr_sock,
                         uint16_t       port)
 {
     int err_code = E_FAILURE;
+    int ret_code = 0;
 
     char port_buffer[MAX_PORT_STR_LEN];
 
@@ -114,7 +129,7 @@ static int server_setup(int          * svr_sock,
 
     (void)snprintf(port_buffer, MAX_PORT_STR_LEN, "%hu", port);
 
-    int ret_code = getaddrinfo("127.0.0.1", port_buffer, &hints, &results);
+    ret_code = getaddrinfo("127.0.0.1", port_buffer, &hints, &results);
 
     if (SUCCESS != ret_code)
     {
