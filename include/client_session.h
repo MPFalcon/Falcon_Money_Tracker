@@ -8,6 +8,7 @@
 #    define CLIENT_SESSION_H
 
 #    include "common/entities.h"
+#    include "common/packet_manager.h"
 
 #    define AUTH_CLIENT 0xfeb4593fecc67839ULL
 

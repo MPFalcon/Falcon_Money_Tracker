@@ -11,6 +11,8 @@
 
 typedef struct pollfd pollfd_t;
 
+typedef void * (*session_func)(int, void *);
+
 typedef struct func_args
 {
     int client_fd;
@@ -20,7 +22,7 @@ typedef struct func_args
 typedef struct session
 {
     pollfd_t * client_poll_fd;
-    job_f  associated_job;
+    session_func  associated_job;
     free_f custom_free;
     void * args;
 } session_t;
@@ -36,7 +38,7 @@ typedef struct session
  * @return            SUCCESS: 0
  *                    FAILURE: 1
  */
-int setup_poll(threadpool_t * threadpool, job_f const_func, free_f free_func, void * args, int timeout, int svr_sock);
+int setup_poll(threadpool_t * threadpool, session_func const_func, free_f free_func, void * args, int timeout, int svr_sock);
 
 #endif /* MANAGE_FDS_H */
 

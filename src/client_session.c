@@ -2,27 +2,27 @@
 #include "prog_feats/login.h"
 #include "prog_feats/signup.h"
 
-bool session_menu_active(int client, struct pollfd * client_poll)
+void * session_menu_active(int client, void * args)
 {
-    bool session_active = true;
-
     meta_data_t meta_data = {
         .bytes_received = 0, .bytes_sent = 0, .msg_len = 0, .msg = { 0 }
     };
 
     profile_t * user_profile = NULL;
+    data_t * opcode = NULL;
 
-    instruction_hdr_t * instruction_set =
-        receive_instructions(client, meta_data);
-
-    if (NULL == instruction_set)
+    if (NULL == args)
     {
         DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
 
         goto EXIT;
     }
 
-    switch (instruction_set->op_code)
+    (void)args;
+
+    opcode = (data_t *)recieve_data(client, meta_data);
+
+    switch ()
     {
         case RECV_READY:
 
@@ -57,7 +57,6 @@ bool session_menu_active(int client, struct pollfd * client_poll)
 
             break;
         case TERMINATE_SESSION:
-            session_active = false;
 
             break;
         default:
@@ -66,19 +65,10 @@ bool session_menu_active(int client, struct pollfd * client_poll)
 
 EXIT:
 
-    if (false == session_active)
-    {
-        close(client_poll->fd);
-        client_poll->fd *= -1;
-    }
-
     free(user_profile);
     user_profile = NULL;
 
-    free(instruction_set);
-    instruction_set = NULL;
-
-    return session_active;
+    return NULL;
 }
 
 /*** end of file ***/

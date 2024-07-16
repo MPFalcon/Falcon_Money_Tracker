@@ -16,17 +16,12 @@
 #define SIGNED_32MASK 0xFFFF
 #define SIGNED_64MASK 0xFFFFFFFFULL
 
-ssize_t receive_bytes(int read_fd, void * buffer, ssize_t num_of_bytes)
+ssize_t receive_bytes(int read_fd, void * main_buffer, ssize_t num_of_bytes)
 {
     ssize_t total_bytes = ERROR;
-
-    int       err     = 0;
-    socklen_t err_len = 0;
-    int       ret_val = 0;
-
     errno = 0;
 
-    if (NULL == buffer)
+    if (NULL == main_buffer)
     {
         DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
 
@@ -40,64 +35,39 @@ ssize_t receive_bytes(int read_fd, void * buffer, ssize_t num_of_bytes)
         goto EXIT;
     }
 
-    total_bytes = 0;
-
-    err     = 0;
-    err_len = sizeof(err);
-    ret_val = getsockopt(read_fd, SOL_SOCKET, SO_ERROR, &err, &err_len);
-
-    while ((num_of_bytes > total_bytes) && (ERROR != err) && (ERROR != ret_val))
+    total_bytes =
+                recv(read_fd, main_buffer, num_of_bytes, 0);
+    
+    if (SUCCESS != errno)
     {
-        for (ssize_t byte_idx = 0; MAX_MTU > byte_idx; byte_idx++)
-        // JQR Item - 6.12.1 / For loop
-        {
-            total_bytes +=
-                recv(read_fd, ((uint8_t *)buffer + total_bytes), 1, O_NONBLOCK);
-            // JQR Item - 6.8.2 and 6.11.6 / Pointer arithmetic is used to read
-            // each byte
+        DEBUG_PRINT("\n\nERROR [x]  Error occurred in recv(): %s\n\n",
+                    __func__);
 
-            if (E_SUCCESS != errno)
-            {
-                DEBUG_PRINT("\n\nERROR [x]  Error occurred in recv(): %s\n\n",
-                            __func__);
-
-                goto EXIT;
-            }
-
-            if (num_of_bytes == total_bytes)
-            {
-                goto EXIT;
-            }
-        }
-
-        ret_val = getsockopt(read_fd, SOL_SOCKET, SO_ERROR, &err, &err_len);
+        goto EXIT;
     }
+    
+EXIT:
 
     if (total_bytes != num_of_bytes)
     {
         DEBUG_PRINT(
             "\n\nERROR [x]  Receive process has been interrupted: %s\n\n",
             __func__);
-
-        goto EXIT;
     }
-
-EXIT:
 
     return total_bytes;
 }
 
-ssize_t send_bytes(int write_fd, void * buffer, ssize_t num_of_bytes)
+ssize_t send_bytes(int write_fd, void * main_buffer, ssize_t num_of_bytes)
 {
     ssize_t total_bytes = ERROR;
-
-    int       err     = 0;
+    void * buffer = NULL;
+    int err = 0;
     socklen_t err_len = 0;
-    int       ret_val = 0;
-
+    int ret_val = 0;
     errno = 0;
 
-    if (NULL == buffer)
+    if (NULL == main_buffer)
     {
         DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
 
@@ -112,46 +82,70 @@ ssize_t send_bytes(int write_fd, void * buffer, ssize_t num_of_bytes)
     }
 
     total_bytes = 0;
-
-    err     = 0;
+    
+    err = 0;
     err_len = sizeof(err);
     ret_val = getsockopt(write_fd, SOL_SOCKET, SO_ERROR, &err, &err_len);
 
-    while ((num_of_bytes > total_bytes) && (ERROR != err) && (ERROR != ret_val))
+    buffer = calloc(1, num_of_bytes);
+
+    if (NULL == buffer)
     {
+        DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
+
+        goto EXIT;
+    }
+
+    while (num_of_bytes > total_bytes)
+    {
+        if((ERR == err) || (ERR == ret_val))
+        {
+            goto EXIT;
+        }
+
         for (ssize_t byte_idx = 0; MAX_MTU > byte_idx; byte_idx++)
         // JQR Item - 6.12.1 / For loop
         {
-            total_bytes += send(
-                write_fd, ((uint8_t *)buffer + total_bytes), 1, O_NONBLOCK);
-            // JQR Item - 6.8.3 /
-
-            if (E_SUCCESS != errno)
-            {
-                DEBUG_PRINT("\n\nERROR [x]  Error occurred in send(): %s\n\n",
-                            __func__);
-
-                goto EXIT;
-            }
-
             if (num_of_bytes == total_bytes)
             {
-                break;
+                goto SEND;
             }
+
+            memcpy(((uint8_t *)buffer + total_bytes), ((uint8_t *)main_buffer + total_bytes), 1);
+
+            total_bytes += 1;
         }
 
         ret_val = getsockopt(write_fd, SOL_SOCKET, SO_ERROR, &err, &err_len);
     }
 
-    if (total_bytes != num_of_bytes)
+SEND:
+
+    total_bytes =
+            send(write_fd, buffer, num_of_bytes, 0);
+            
+    if (SUCCESS != errno)
     {
-        DEBUG_PRINT("\n\nERROR [x]  Send process has been interrupted: %s\n\n",
+        DEBUG_PRINT("\n\nERROR [x]  Error occurred in send(): %s\n\n",
                     __func__);
 
         goto EXIT;
     }
 
 EXIT:
+
+    if (NULL != buffer)
+    {
+        free(buffer);
+        buffer = NULL;
+    }
+
+    if (total_bytes != num_of_bytes)
+    {
+        DEBUG_PRINT(
+            "\n\nERROR [x]  Send process has been interrupted: %s\n\n",
+            __func__);
+    }
 
     return total_bytes;
 }

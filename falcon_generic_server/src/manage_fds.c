@@ -3,7 +3,7 @@
 typedef struct poll_manager
 {
     threadpool_t * threadpool;
-    job_f const_func;
+    session_func const_func;
     free_f free_func;
     void * args;
     int svr_sock;
@@ -56,7 +56,7 @@ static void add_to_pfds(pollfd_t ** pfds, int newfd, nfds_t * fd_count, nfds_t *
  */
 static void del_from_pfds(pollfd_t * pfds, nfds_t idx, nfds_t * fd_count);
 
-int setup_poll(threadpool_t * threadpool, job_f const_func, free_f free_func, void * args, int timeout, int svr_sock)
+int setup_poll(threadpool_t * threadpool, session_func const_func, free_f free_func, void * args, int timeout, int svr_sock)
 {
     int err_code = E_FAILURE;
     int event_occurred = 0;
@@ -160,9 +160,6 @@ static int probe_fd(manager_t * poll_config)
             goto EXIT;
         }
 
-        poll_config->poll_list[(poll_config->active_connections + 1)].events = POLLIN;
-        poll_config->poll_list[(poll_config->active_connections + 1)].events = 0;
-
         add_to_pfds(&poll_config->poll_list, poll_config->poll_list[(poll_config->active_connections + 1)].fd, &poll_config->active_connections, &poll_config->poll_limit);
     }
     else
@@ -226,10 +223,12 @@ static void * client_driver(void * args)
     custom_job->client_fd = session->client_poll_fd->fd;
     session->client_poll_fd->fd *= -1;
     custom_job->args = session->args;
-    session->associated_job(custom_job);
+    session->associated_job(custom_job->client_fd, custom_job->args);
     session->custom_free(custom_job->args);
     session->client_poll_fd->fd *= -1;
-
+    
+    custom_job = NULL;
+    
     free(session);
     session = NULL;
 
@@ -257,7 +256,7 @@ static void add_to_pfds(pollfd_t ** pfds, int newfd, nfds_t * fd_count, nfds_t *
     if (*fd_count == *fd_size) {
         *fd_size *= 2; // Double it
 
-        *pfds = realloc(*pfds, sizeof(**pfds) * (*fd_size));
+        *pfds = (pollfd_t *)realloc(*pfds, sizeof(**pfds) * (*fd_size));
     }
 
     (*pfds)[*fd_count].fd = newfd;

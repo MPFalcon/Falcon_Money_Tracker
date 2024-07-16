@@ -15,12 +15,6 @@
 #    define MAX_NAME_LEN 50
 #    define MAX_PASS_LEN 100
 
-typedef struct __attribute__((packed)) INSTRUCTION_HEADER
-{
-    uint16_t op_code;
-    uint64_t byte_size;
-} instruction_hdr_t;
-
 typedef struct associated_bank
 {
     char     bank_name[MAX_BANK_LEN];
