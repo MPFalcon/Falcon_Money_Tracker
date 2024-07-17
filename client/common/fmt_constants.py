@@ -15,8 +15,8 @@ MAX_BANK_LEN = 200
 MAX_NAME_LEN = 50
 MAX_PASS_LEN = 100
 
-DEFAULT_BUFFER_LEN = 1000
-DEFAULT_PACKET_LEN = (32 + DEFAULT_BUFFER_LEN)
+DEFAULT_BUFFER_LEN = 10
+DEFAULT_PACKET_LEN = (28 + DEFAULT_BUFFER_LEN)
 
 AUTH_CLIENT       = 0xfeb4593fecc67839
 
@@ -86,16 +86,19 @@ def send_data(client, bytes_to_send):
     seq_num = randint(0, 2000000)
     total_size = len(bytes_to_send)
     bytes_size = 0
-    total_packets = ((len(bytes_to_send) // DEFAULT_BUFFER_LEN) + 1)
-
+    total_packets = 1 if (len(bytes_to_send) <= DEFAULT_BUFFER_LEN) else ((len(bytes_to_send) // DEFAULT_BUFFER_LEN) + 1)
+    
     for i in range(0, total_packets):
         if total_packets == (i + 1):
             bytes_size = (total_size - offset)
-            packet = pack("!iQQQ", seq_num, total_size, bytes_size, total_packets) + bytes_to_send[offset:-1].ljust(DEFAULT_BUFFER_LEN, b'\x00')
+            packet = pack("!iQQQ", seq_num, total_size, bytes_size, total_packets) + bytes_to_send[offset:].ljust(DEFAULT_BUFFER_LEN, b'\x00')
             send_full_data(client, packet, DEFAULT_PACKET_LEN)
         else:
             bytes_size = DEFAULT_BUFFER_LEN
-            packet = pack("!iQQQ", seq_num, total_size, bytes_size, total_packets) + bytes_to_send[offset:(offset + DEFAULT_BUFFER_LEN)]
+            if 8 > DEFAULT_BUFFER_LEN:
+                packet = pack("!iQQQ", seq_num, total_size, bytes_size, total_packets) + bytes_to_send[offset:(offset + DEFAULT_BUFFER_LEN)].ljust(8, b'\x00')
+            else:
+                packet = pack("!iQQQ", seq_num, total_size, bytes_size, total_packets) + bytes_to_send[offset:(offset + DEFAULT_BUFFER_LEN)]
             offset = (offset + DEFAULT_BUFFER_LEN)
             send_full_data(client, packet, DEFAULT_PACKET_LEN)
 
@@ -109,28 +112,28 @@ def recieve_data(client):
 
     temp_bytes = recv_full_data(client, DEFAULT_PACKET_LEN)
 
-    packet = unpack("!iQQQ", temp_bytes[:32])
+    packet = unpack("!iQQQ", temp_bytes[:(28 + 1)])
 
     seq_num = packet[0]
     total_size = packet[1]
     bytes_size = packet[2]
     total_packets = packet[3]
     
-    data_to_return += temp_bytes[32:bytes_size]
+    data_to_return += temp_bytes[28:(bytes_size + 1)]
     
     offset += bytes_size
 
     for i in range(1, total_packets):
         temp_bytes = recv_full_data(client, DEFAULT_PACKET_LEN)
 
-        packet = unpack("!iQQQ", temp_bytes[:32])
+        packet = unpack("!iQQQ", temp_bytes[:(28 + 1)])
 
         seq_num = packet[0]
         total_size = packet[1]
         bytes_size = packet[2]
         total_packets = packet[3]
         
-        data_to_return += temp_bytes[32:bytes_size]
+        data_to_return += temp_bytes[28:(bytes_size + 1)]
         
         offset += bytes_size
 

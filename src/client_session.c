@@ -14,22 +14,16 @@ void * session_menu_active(int client, void * args)
 
     profile_t * user_profile = NULL;
     data_t *    opcode       = NULL;
-    __uint128_t auth_token   = 0ULL;
+    uint64_t    auth_token   = 0ULL;
     char        con_buffer   = 0;
     int         check_con    = 0;
 
-    if (NULL == args)
-    {
-        DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
-
-        goto EXIT;
-    }
-
     (void)args;
 
-    auth_token = ((data_t *)recieve_data(client, meta_data))->unsign128;
+    auth_token = ((data_t *)recieve_data(client, meta_data))->unsign64;
+    (void)convert_endianess64(&auth_token);
 
-    printf("\n\nGiven Token: %x\n\n", auth_token);
+    printf("\n\nGiven Token: %lx\n\n", auth_token);
 
     if (AUTH_CLIENT != auth_token)
     {
@@ -45,6 +39,10 @@ void * session_menu_active(int client, void * args)
         printf(
             "\n\nNOTE [+]  Client #%d Accepted ... : %s\n\n", client, __func__);
     }
+
+    char * balenci = (char *)recieve_data(client, meta_data);
+
+    printf("\n\nIncoming String: %s\n\n", balenci);
 
     for (;;)
     {

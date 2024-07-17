@@ -9,22 +9,20 @@
 
 #    include "net_io_stream.h"
 
-#    define DEFAULT_BUFFER_SIZE 1000
+#    define DEFAULT_BUFFER_SIZE 10
 
-typedef union data
+typedef union __attribute__((packed)) data
 {
-    __uint128_t unsign128;
-    uint64_t    unsign64;
-    uint32_t    unsign32;
-    uint16_t    unsign16;
-    __int128_t  sign128;
-    int64_t     sign64;
-    int32_t     sign32;
-    int16_t     sign16;
-    uint8_t     data_buffer[DEFAULT_BUFFER_SIZE];
+    uint64_t unsign64;
+    uint32_t unsign32;
+    uint16_t unsign16;
+    int64_t  sign64;
+    int32_t  sign32;
+    int16_t  sign16;
+    uint8_t  data_buffer[DEFAULT_BUFFER_SIZE];
 } data_t;
 
-typedef struct falcon_header
+typedef struct __attribute__((packed)) falcon_header
 {
     int32_t  seq_num;
     uint64_t total_size;

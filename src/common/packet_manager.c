@@ -32,7 +32,17 @@ void * recieve_data(int client, meta_data_t meta_data)
     (void)convert_endianess64(&curr_header->byte_size);
     (void)convert_endianess64(&curr_header->total_packets);
 
-    master_buffer = calloc(1, curr_header->total_size);
+    // printf("\n\nData Buffer Length: %lu\n\n", sizeof(header_t));
+
+    // printf(
+    //     "\n\nHeader Detail - \nSequence Num #%d\nTotal Size: %lu\nBytes Size: "
+    //     "%lu\nTotal Packets: %lu\n\n",
+    //     curr_header->seq_num,
+    //     curr_header->total_size,
+    //     curr_header->byte_size,
+    //     curr_header->total_packets);
+
+    master_buffer = calloc(1, (curr_header->total_size + 1));
 
     if (NULL == master_buffer)
     {
@@ -63,11 +73,14 @@ void * recieve_data(int client, meta_data_t meta_data)
         (void)convert_endianess64(&curr_header->byte_size);
         (void)convert_endianess64(&curr_header->total_packets);
 
-        memcpy(((uint8_t *)master_buffer + offset),
-               &curr_header->bytes,
-               curr_header->byte_size);
+        if (0 < curr_header->byte_size)
+        {
+            memcpy(((uint8_t *)master_buffer + offset),
+                   &curr_header->bytes,
+                   curr_header->byte_size);
 
-        offset += curr_header->byte_size;
+            offset += curr_header->byte_size;
+        }
     }
 
 EXIT:
