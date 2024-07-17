@@ -10,8 +10,7 @@
 #    include <getopt.h>
 #    include <stdbool.h>
 
-#    include "server_interface.h"
-#    include "client_session.h"
+#    include "client_interface.h"
 
 #    define MAX_PORT_NUM    65535
 #    define MIN_PORT_NUM    1024

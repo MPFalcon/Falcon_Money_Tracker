@@ -235,7 +235,7 @@ static int probe_fd(manager_t * poll_config)
         check_con = recv(poll_config->poll_list[poll_config->idx].fd,
                          &con_buffer,
                          1,
-                         O_NONBLOCK);
+                         (O_NONBLOCK | MSG_PEEK));
 
         if (0 == check_con)
         {

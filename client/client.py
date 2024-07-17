@@ -1,11 +1,6 @@
 import fcntl
 from menu import *
 
-def send_token(client):
-    token_bytes = pack("!Q", AUTH_CLIENT)
-    send_data(client, token_bytes)
-    send_data(client, "BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!\n".encode('utf-8'))
-
 def connect_to_server(server_info):
     client = socket(AF_INET, SOCK_STREAM, IPPROTO_IP)
     client.connect((server_info[0], server_info[1]))
@@ -19,7 +14,6 @@ def main():
 
     try:
         client_fd = connect_to_server(server_info)
-        send_token(client_fd)
         menu(client_fd)
         client_fd.close()
     except(KeyboardInterrupt):

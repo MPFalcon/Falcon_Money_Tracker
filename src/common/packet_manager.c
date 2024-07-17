@@ -4,20 +4,16 @@
 
 void * recieve_data(int client, meta_data_t meta_data)
 {
-    void *     master_buffer = NULL;
-    header_t * curr_header   = NULL;
-    uint64_t   offset        = 0;
+    void *   master_buffer = NULL;
+    uint64_t offset        = 0;
 
-    curr_header = (header_t *)calloc(1, HDR_LEN);
+    header_t curr_header = { .seq_num       = 0,
+                             .total_size    = 0,
+                             .byte_size     = 0,
+                             .total_packets = 0,
+                             .bytes         = { 0 } };
 
-    if (NULL == curr_header)
-    {
-        DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
-
-        goto EXIT;
-    }
-
-    meta_data.bytes_received = receive_bytes(client, curr_header, HDR_LEN);
+    meta_data.bytes_received = receive_bytes(client, &curr_header, HDR_LEN);
 
     if (ERROR == meta_data.bytes_received)
     {
@@ -27,22 +23,23 @@ void * recieve_data(int client, meta_data_t meta_data)
         goto EXIT;
     }
 
-    (void)convert_endianess32(&curr_header->seq_num);
-    (void)convert_endianess64(&curr_header->total_size);
-    (void)convert_endianess64(&curr_header->byte_size);
-    (void)convert_endianess64(&curr_header->total_packets);
+    (void)convert_endianess32sign(&curr_header.seq_num);
+    (void)convert_endianess64(&curr_header.total_size);
+    (void)convert_endianess64(&curr_header.byte_size);
+    (void)convert_endianess64(&curr_header.total_packets);
 
-    // printf("\n\nData Buffer Length: %lu\n\n", sizeof(header_t));
+    printf("\n\nData Buffer Recieved: %zi\n\n", meta_data.bytes_received);
 
-    // printf(
-    //     "\n\nHeader Detail - \nSequence Num #%d\nTotal Size: %lu\nBytes Size: "
-    //     "%lu\nTotal Packets: %lu\n\n",
-    //     curr_header->seq_num,
-    //     curr_header->total_size,
-    //     curr_header->byte_size,
-    //     curr_header->total_packets);
+    printf(
+        "\n\nHeader Detail - \nSequence Num #%u\nTotal Size: %lu\nBytes"
+        " Size: "
+        "%lu\nTotal Packets: %lu\n\n",
+        curr_header.seq_num,
+        curr_header.total_size,
+        curr_header.byte_size,
+        curr_header.total_packets);
 
-    master_buffer = calloc(1, (curr_header->total_size + 1));
+    master_buffer = calloc(1, (curr_header.total_size + 1));
 
     if (NULL == master_buffer)
     {
@@ -51,13 +48,13 @@ void * recieve_data(int client, meta_data_t meta_data)
         goto EXIT;
     }
 
-    memcpy(master_buffer, &curr_header->bytes, curr_header->byte_size);
+    memcpy(master_buffer, &curr_header.bytes, curr_header.byte_size);
 
-    offset += curr_header->byte_size;
+    offset += curr_header.byte_size;
 
-    for (uint64_t idx = 1; curr_header->total_packets > idx; idx++)
+    for (uint64_t idx = 1; curr_header.total_packets > idx; idx++)
     {
-        meta_data.bytes_received = receive_bytes(client, curr_header, HDR_LEN);
+        meta_data.bytes_received = receive_bytes(client, &curr_header, HDR_LEN);
 
         if (ERROR == meta_data.bytes_received)
         {
@@ -68,18 +65,18 @@ void * recieve_data(int client, meta_data_t meta_data)
             continue;
         }
 
-        (void)convert_endianess32(&curr_header->seq_num);
-        (void)convert_endianess64(&curr_header->total_size);
-        (void)convert_endianess64(&curr_header->byte_size);
-        (void)convert_endianess64(&curr_header->total_packets);
+        (void)convert_endianess32sign(&curr_header.seq_num);
+        (void)convert_endianess64(&curr_header.total_size);
+        (void)convert_endianess64(&curr_header.byte_size);
+        (void)convert_endianess64(&curr_header.total_packets);
 
-        if (0 < curr_header->byte_size)
+        if (0 < curr_header.byte_size)
         {
             memcpy(((uint8_t *)master_buffer + offset),
-                   &curr_header->bytes,
-                   curr_header->byte_size);
+                   &curr_header.bytes,
+                   curr_header.byte_size);
 
-            offset += curr_header->byte_size;
+            offset += curr_header.byte_size;
         }
     }
 
@@ -130,7 +127,7 @@ int send_data(int         client,
             offset += out_going_header.byte_size;
         }
 
-        (void)convert_endianess32(&out_going_header.seq_num);
+        (void)convert_endianess32sign(&out_going_header.seq_num);
         (void)convert_endianess64(&out_going_header.total_size);
         (void)convert_endianess64(&out_going_header.byte_size);
         (void)convert_endianess64(&out_going_header.total_packets);
@@ -147,7 +144,7 @@ int send_data(int         client,
             continue;
         }
 
-        (void)convert_endianess32(&out_going_header.seq_num);
+        (void)convert_endianess32sign(&out_going_header.seq_num);
         (void)convert_endianess64(&out_going_header.total_size);
         (void)convert_endianess64(&out_going_header.byte_size);
         (void)convert_endianess64(&out_going_header.total_packets);

@@ -50,7 +50,7 @@ ssize_t receive_bytes(int read_fd, void * buffer, ssize_t num_of_bytes);
 ssize_t send_bytes(int write_fd, void * buffer, ssize_t num_of_bytes);
 
 /**
- * @brief       Convert byte order in 16 bits
+ * @brief       Convert unsigned byte order in 16 bits
  *
  *              Conceptualized by chmike from StackOverflow
  *
@@ -64,7 +64,7 @@ ssize_t send_bytes(int write_fd, void * buffer, ssize_t num_of_bytes);
 int convert_endianess16(void * bytes);
 
 /**
- * @brief       Convert byte order in 32 bits
+ * @brief       Convert unsigned byte order in 32 bits
  *
  *              Conceptualized by chmike from StackOverflow
  *
@@ -78,7 +78,7 @@ int convert_endianess16(void * bytes);
 int convert_endianess32(void * bytes);
 
 /**
- * @brief       Convert byte order in 64 bits
+ * @brief       Convert unsigned byte order in 64 bits
  *
  *              Conceptualized by chmike from StackOverflow
  *
@@ -90,6 +90,48 @@ int convert_endianess32(void * bytes);
  *              FAILURE: 1
  */
 int convert_endianess64(void * bytes);
+
+/**
+ * @brief       Convert signed byte order in 16 bits
+ *
+ *              Conceptualized by chmike from StackOverflow
+ *
+ *              https://stackoverflow.com/questions/2182002/how-to-convert-big-endian-to-little-endian-in-c-without-using-library-functions
+ *
+ * @param bytes Object in memory
+ *
+ * @return      SUCCESS: 0
+ *              FAILURE: 1
+ */
+int convert_endianess16sign(void * bytes);
+
+/**
+ * @brief       Convert signed byte order in 32 bits
+ *
+ *              Conceptualized by chmike from StackOverflow
+ *
+ *              https://stackoverflow.com/questions/2182002/how-to-convert-big-endian-to-little-endian-in-c-without-using-library-functions
+ *
+ * @param bytes Object in memory
+ *
+ * @return      SUCCESS: 0
+ *              FAILURE: 1
+ */
+int convert_endianess32sign(void * bytes);
+
+/**
+ * @brief       Convert signed byte order in 64 bits
+ *
+ *              Conceptualized by chmike from StackOverflow
+ *
+ *              https://stackoverflow.com/questions/2182002/how-to-convert-big-endian-to-little-endian-in-c-without-using-library-functions
+ *
+ * @param bytes Object in memory
+ *
+ * @return      SUCCESS: 0
+ *              FAILURE: 1
+ */
+int convert_endianess64sign(void * bytes);
 
 /**
  * @brief       Safe wrapper function for close()

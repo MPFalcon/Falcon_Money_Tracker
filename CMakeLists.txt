@@ -19,6 +19,7 @@ set(SRC_FILES
     src/main.c
     src/cli.c
     src/client_session.c
+    src/client_interface.c
 )
 
 add_executable(${PROJECT_NAME} ${SRC_FILES})

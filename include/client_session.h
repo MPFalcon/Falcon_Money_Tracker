@@ -11,6 +11,14 @@
 #    include "common/packet_manager.h"
 
 #    define AUTH_CLIENT 0xfeb4593fecc67839ULL
+typedef struct client_node
+{
+    int  client_fd;
+    bool session_athorized;
+    // ACT_F action_func;
+    CMP_F     comp_func;
+    list_t ** list_refernce;
+} client_t;
 
 /**
  * @brief                Await instructions from the user
@@ -18,7 +26,7 @@
  * @param client         Client socket
  * @param args           Valid arguments instance
  */
-void * session_menu_active(int client, void * args);
+void session_menu_active(void * args);
 
 /**
  * @brief       Free client session

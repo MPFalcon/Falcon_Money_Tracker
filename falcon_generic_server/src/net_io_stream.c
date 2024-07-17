@@ -18,8 +18,11 @@
 
 ssize_t receive_bytes(int read_fd, void * main_buffer, ssize_t num_of_bytes)
 {
-    ssize_t total_bytes = ERROR;
-    errno               = 0;
+    ssize_t total_bytes   = ERROR;
+    ssize_t byte_returned = 1;
+    errno                 = 0;
+
+    void * buffer = NULL;
 
     if (NULL == main_buffer)
     {
@@ -35,15 +38,43 @@ ssize_t receive_bytes(int read_fd, void * main_buffer, ssize_t num_of_bytes)
         goto EXIT;
     }
 
-    total_bytes = recv(read_fd, main_buffer, num_of_bytes, O_NONBLOCK);
+    buffer = calloc(1, num_of_bytes);
 
-    if (SUCCESS != errno)
+    if (NULL == buffer)
     {
-        DEBUG_PRINT("\n\nERROR [x]  Error occurred in recv(): %s\n\n",
-                    __func__);
+        DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
 
         goto EXIT;
     }
+
+    total_bytes = 0;
+
+    for (;;)
+    {
+        if ((total_bytes >= num_of_bytes) || (0 == byte_returned))
+        {
+            break;
+        }
+
+        // sleep(1);
+        printf("\n\n%zi, %zi\n\n", num_of_bytes, total_bytes);
+        byte_returned = recv(read_fd,
+                             ((uint8_t *)buffer + total_bytes),
+                             (num_of_bytes - total_bytes),
+                             O_NONBLOCK);
+
+        if (SUCCESS != errno)
+        {
+            DEBUG_PRINT("\n\nERROR [x]  Error occurred in recv(): %s\n\n",
+                        __func__);
+
+            goto EXIT;
+        }
+
+        total_bytes += byte_returned;
+    }
+
+    memcpy(main_buffer, buffer, total_bytes);
 
 EXIT:
 
@@ -164,9 +195,6 @@ int convert_endianess16(void * bytes)
 
     *(uint16_t *)bytes = (num >> BITS8) | (num << BITS8);
 
-    // For signed: *(int16_t *)bytes (num >> BITS8) | ((num << BITS8) &
-    // SIGNED_16MASK);
-
     err_code = E_SUCCESS;
 
 EXIT:
@@ -190,9 +218,6 @@ int convert_endianess32(void * bytes)
     num = ((num << BITS8) & E32_LMASK) | ((num >> BITS8) & E32_RMASK);
 
     *(uint32_t *)bytes = (num << BITS16) | (num >> BITS16);
-
-    // For signed: *(int64_t *)bytes = (num << BITS16) | ((num >> BITS16) &
-    // SIGNED_32MASK);
 
     err_code = E_SUCCESS;
 
@@ -219,8 +244,76 @@ int convert_endianess64(void * bytes)
 
     *(uint64_t *)bytes = (num << BITS32) | (num >> BITS32);
 
-    // For signed: *(int64_t *)bytes = (num << BITS32) | ((num >> BITS32) &
-    // SIGNED_64MASK);
+    err_code = E_SUCCESS;
+
+EXIT:
+
+    return err_code;
+}
+
+int convert_endianess16sign(void * bytes)
+{
+    int err_code = E_FAILURE;
+
+    if (NULL == bytes)
+    {
+        DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
+
+        goto EXIT;
+    }
+
+    int16_t num = *(int16_t *)bytes;
+
+    *(int16_t *)bytes = (num >> BITS8) | ((num << BITS8) & SIGNED_16MASK);
+
+    err_code = E_SUCCESS;
+
+EXIT:
+
+    return err_code;
+}
+
+int convert_endianess32sign(void * bytes)
+{
+    int err_code = E_FAILURE;
+
+    if (NULL == bytes)
+    {
+        DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
+
+        goto EXIT;
+    }
+
+    int32_t num = *(int32_t *)bytes;
+
+    num = ((num << BITS8) & E32_LMASK) | ((num >> BITS8) & E32_RMASK);
+
+    *(int32_t *)bytes = (num << BITS16) | ((num >> BITS16) & SIGNED_32MASK);
+
+    err_code = E_SUCCESS;
+
+EXIT:
+
+    return err_code;
+}
+
+int convert_endianess64sign(void * bytes)
+{
+    int err_code = E_FAILURE;
+
+    if (NULL == bytes)
+    {
+        DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
+
+        goto EXIT;
+    }
+
+    int64_t num = *(int64_t *)bytes;
+
+    num = ((num << BITS8) & E64_LMASK) | ((num >> BITS8) & E64_RMASK);
+    num = ((num << BITS16) & E64_LMASK2B) | ((num >> BITS16) & E64_RMASK2B);
+
+    *(int64_t *)bytes = (num << BITS32) | ((num >> BITS32) & SIGNED_64MASK);
 
     err_code = E_SUCCESS;
 

@@ -8,7 +8,6 @@ project(threadpool
 
 set(SRC_POOL_FILES
     threadpool/src/threadpool.c
-    threadpool/src/linked_list.c
     threadpool/src/signals.c
 )
 

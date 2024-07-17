@@ -1,6 +1,11 @@
 import os
 from cli import *
 
+def send_token(client):
+    token_bytes = pack("!Q", AUTH_CLIENT)
+    send_data(client, token_bytes)
+    # send_data(client, "BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!".encode('utf-8'))
+
 def process_return_code(ret_code):
     if OP_SUCCESS == ret_code:
         print("\n\nSuccess!\n")
@@ -34,16 +39,15 @@ def sign_up(profile, client):
     
 def menu(client):
     profile = Profile()
-
+    
     print('''
             1) Login
             2) Sign Up
             3) Exit
             4) Help
             ''')
-    
+    send_token(client)
     while True:
-      
       user_input = input("\n>  ")
 
       #if user_input == '1':

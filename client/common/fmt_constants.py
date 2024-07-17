@@ -15,7 +15,7 @@ MAX_BANK_LEN = 200
 MAX_NAME_LEN = 50
 MAX_PASS_LEN = 100
 
-DEFAULT_BUFFER_LEN = 10
+DEFAULT_BUFFER_LEN = 1000
 DEFAULT_PACKET_LEN = (28 + DEFAULT_BUFFER_LEN)
 
 AUTH_CLIENT       = 0xfeb4593fecc67839
@@ -91,16 +91,19 @@ def send_data(client, bytes_to_send):
     for i in range(0, total_packets):
         if total_packets == (i + 1):
             bytes_size = (total_size - offset)
-            packet = pack("!iQQQ", seq_num, total_size, bytes_size, total_packets) + bytes_to_send[offset:].ljust(DEFAULT_BUFFER_LEN, b'\x00')
-            send_full_data(client, packet, DEFAULT_PACKET_LEN)
+            if 8 > DEFAULT_BUFFER_LEN:
+                packet = pack("!iQQQ", seq_num, total_size, bytes_size, total_packets) + bytes_to_send[offset:].ljust(DEFAULT_BUFFER_LEN, b'\x00').ljust(8, b'\x00')
+            else:
+                packet = pack("!iQQQ", seq_num, total_size, bytes_size, total_packets) + bytes_to_send[offset:].ljust(DEFAULT_BUFFER_LEN, b'\x00')
+            send_full_data(client, packet, len(packet))
         else:
             bytes_size = DEFAULT_BUFFER_LEN
             if 8 > DEFAULT_BUFFER_LEN:
-                packet = pack("!iQQQ", seq_num, total_size, bytes_size, total_packets) + bytes_to_send[offset:(offset + DEFAULT_BUFFER_LEN)].ljust(8, b'\x00')
+                packet = pack("!iQQQ", seq_num, total_size, bytes_size, total_packets) + bytes_to_send[offset:(offset + (DEFAULT_BUFFER_LEN + 1))].ljust(8, b'\x00')
             else:
-                packet = pack("!iQQQ", seq_num, total_size, bytes_size, total_packets) + bytes_to_send[offset:(offset + DEFAULT_BUFFER_LEN)]
+                packet = pack("!iQQQ", seq_num, total_size, bytes_size, total_packets) + bytes_to_send[offset:(offset + (DEFAULT_BUFFER_LEN + 1))]
             offset = (offset + DEFAULT_BUFFER_LEN)
-            send_full_data(client, packet, DEFAULT_PACKET_LEN)
+            send_full_data(client, packet, len(packet))
 
 def recieve_data(client):
     offset = 0
