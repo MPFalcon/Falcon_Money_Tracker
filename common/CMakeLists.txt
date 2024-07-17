@@ -3,7 +3,6 @@ project(common VERSION 1.0.0 DESCRIPTION "Common Calc Libraries for CSD")
 
 set(SRC_FILES
     src/print_utilities.c
-    src/signals.c
 )
 
 add_library(${PROJECT_NAME}_shared SHARED ${SRC_FILES})

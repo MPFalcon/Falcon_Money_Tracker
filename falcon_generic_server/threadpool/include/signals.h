@@ -5,6 +5,8 @@
 
 #include <signal.h>
 
+#include "utils.h"
+
 /**
  * @brief Global signal flag to store a value set by the signal handler.
  * Default value should be 0

@@ -1,5 +1,2 @@
-clang-format -i Common/include/*
-clang-format -i Common/src/*
-clang-format -i Graphs/Adjacency_List/include/*
-clang-format -i Graphs/Adjacency_List/include/*
-clang-format -i Graphs/Adjacency_List/src/*
+find -name *.c | xargs clang-format -i
+find -name *.h | xargs clang-format -i

@@ -11,15 +11,19 @@
 #    include <stdbool.h>
 
 #    include "server_interface.h"
+#    include "client_session.h"
 
-#    define MAX_PORT_NUM         65535
-#    define MIN_PORT_NUM         1024
-#    define DEFAULT_PORT         31337U
+#    define MAX_PORT_NUM    65535
+#    define MIN_PORT_NUM    1024
+#    define DEFAULT_PORT    31337U
+#    define DEFAULT_THREADS 4U
 
 typedef struct options
 {
+    uint32_t threads;
     uint16_t port;
     bool     port_flag;
+    bool     threads_flag;
 } options_t;
 
 /**

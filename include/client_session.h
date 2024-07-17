@@ -7,20 +7,25 @@
 #ifndef CLIENT_SESSION_H
 #    define CLIENT_SESSION_H
 
-#    include "net_io_stream.h"
+#    include "common/entities.h"
+#    include "common/packet_manager.h"
 
-typedef struct __attribute__((packed)) INSTRUCTION_HEADER
-{
-    uint16_t op_code;
-    uint64_t byte_size;
-} instruction_hdr_t;
+#    define AUTH_CLIENT 0xfeb4593fecc67839ULL
 
 /**
- * @brief               Spin up session for new client
+ * @brief                Await instructions from the user
  *
- * @param thread_count  Valid client instance
+ * @param client         Client socket
+ * @param args           Valid arguments instance
  */
-void session_driver(int client);
+void * session_menu_active(int client, void * args);
+
+/**
+ * @brief       Free client session
+ *
+ * @param args  Memory that needs to be freed
+ */
+void free_session(void * args);
 
 #endif /* CLIENT_SESSION_H */
 
