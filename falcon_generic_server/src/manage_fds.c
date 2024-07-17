@@ -89,6 +89,8 @@ int setup_poll(threadpool_t * threadpool, session_func const_func, free_f free_f
         goto EXIT;
     }
 
+    memset(poll_config.poll_list, -1, (BACKLOG_CAPACITY * sizeof(pollfd_t)));
+
     poll_config.poll_list[0].fd = svr_sock;
     poll_config.poll_list[0].events = POLLIN;
     poll_config.poll_list[0].revents = 0;
@@ -97,7 +99,6 @@ int setup_poll(threadpool_t * threadpool, session_func const_func, free_f free_f
     {
         if (SIGNAL_IGNORED != signal_flag_g)
         {
-            sleep(2);
             break;
         }
 
@@ -152,10 +153,12 @@ EXIT:
 static int probe_fd(manager_t * poll_config)
 {
     int err_code = E_FAILURE;
+    int client_fd = 0;
     int check_con = 0;
     struct sockaddr * client_skt = NULL;
     socklen_t   client_skt_len = 0;
     session_t * new_session = NULL;
+    char con_buffer = 0;
 
     if (NULL == poll_config)
     {
@@ -166,19 +169,18 @@ static int probe_fd(manager_t * poll_config)
     
     if (poll_config->svr_sock == poll_config->poll_list[poll_config->idx].fd)
     {
-        printf("\n\nnew connection\n\n");
-        poll_config->poll_list[(poll_config->active_connections + 1)].fd = accept(poll_config->svr_sock, client_skt, &client_skt_len);
+        client_fd = accept(poll_config->svr_sock, client_skt, &client_skt_len);
 
-        if (ERROR == poll_config->poll_list[(poll_config->active_connections + 1)].fd)
+        if (ERROR == client_fd)
         {
             DEBUG_PRINT("\n\nERROR [x]  Error occurred in accept(): %s\n\n", __func__);
 
             goto EXIT;
         }
 
-        fcntl(poll_config->poll_list[(poll_config->active_connections + 1)].fd, F_SETFD, O_NONBLOCK);
+        fcntl(client_fd, F_SETFD, O_NONBLOCK);
 
-        add_to_pfds(&poll_config->poll_list, poll_config->poll_list[(poll_config->active_connections + 1)].fd, &poll_config->active_connections, &poll_config->poll_limit);
+        add_to_pfds(&poll_config->poll_list, client_fd, &poll_config->active_connections, &poll_config->poll_limit);
     
         new_session = (session_t *)calloc(1, sizeof(session_t));
 
@@ -191,9 +193,9 @@ static int probe_fd(manager_t * poll_config)
 
         new_session->associated_job = poll_config->const_func;
         new_session->custom_free    = poll_config->free_func;
-        new_session->client_poll_fd = &poll_config->poll_list[(poll_config->active_connections + 1)];
+        new_session->client_poll_fd = &poll_config->poll_list[(poll_config->active_connections - 1)];
         new_session->args           = poll_config->args;
-
+        
         err_code = threadpool_add_job(poll_config->threadpool, (job_f)client_driver, (free_f)free_client_session, (void *)new_session);
 
         if (SUCCESS != err_code)
@@ -203,10 +205,11 @@ static int probe_fd(manager_t * poll_config)
     }
     else
     {
-        check_con = recv(poll_config->poll_list[poll_config->idx].fd, NULL, 1, O_NONBLOCK);
-
+        check_con = recv(poll_config->poll_list[poll_config->idx].fd, &con_buffer, 1, O_NONBLOCK);
+        
         if (0 == check_con)
         {
+            close(poll_config->poll_list[poll_config->idx].fd);
             del_from_pfds(poll_config->poll_list, poll_config->idx, &poll_config->active_connections);
         }
     }
@@ -260,7 +263,6 @@ EXIT:
 
 static void free_client_session(void * data)
 {
-    printf("\n\nFreeing session\n\n");
     if (NULL != data)
     {
        free(data);
@@ -287,7 +289,7 @@ static void add_to_pfds(pollfd_t ** pfds, int newfd, nfds_t * fd_count, nfds_t *
 static void del_from_pfds(pollfd_t * pfds, nfds_t idx, nfds_t * fd_count)
 {
     // Copy the one from the end over this one
-    pfds[idx] = pfds[*fd_count-1];
+    pfds[idx] = pfds[((*fd_count) - 1)];
 
     (*fd_count)--;
 }

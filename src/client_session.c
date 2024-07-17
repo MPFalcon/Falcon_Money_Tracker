@@ -4,7 +4,6 @@
 
 void * session_menu_active(int client, void * args)
 {
-    printf("\n\nRUNNING\n\n");
 //     meta_data_t meta_data = {
 //         .bytes_received = 0, .bytes_sent = 0, .msg_len = 0, .msg = { 0 }
 //     };
