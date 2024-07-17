@@ -14,6 +14,7 @@ void * session_menu_active(int client, void * args)
 
     profile_t * user_profile = NULL;
     data_t *    opcode       = NULL;
+    __uint128_t auth_token   = 0ULL;
     char        con_buffer   = 0;
     int         check_con    = 0;
 
@@ -26,7 +27,11 @@ void * session_menu_active(int client, void * args)
 
     (void)args;
 
-    if (AUTH_CLIENT != ((data_t *)recieve_data(client, meta_data))->unsign128)
+    auth_token = ((data_t *)recieve_data(client, meta_data))->unsign128;
+
+    printf("\n\nGiven Token: %x\n\n", auth_token);
+
+    if (AUTH_CLIENT != auth_token)
     {
         DEBUG_PRINT(
             "\n\nERROR [x]  Unauthorized client detected -"
@@ -41,12 +46,9 @@ void * session_menu_active(int client, void * args)
             "\n\nNOTE [+]  Client #%d Accepted ... : %s\n\n", client, __func__);
     }
 
-    for(;;)
+    for (;;)
     {
-        check_con = recv(poll_config->poll_list[poll_config->idx].fd,
-                         &con_buffer,
-                         1,
-                         (O_NONBLOCK));
+        check_con = recv(client, &con_buffer, 1, (O_NONBLOCK));
 
         if (0 == check_con)
         {
