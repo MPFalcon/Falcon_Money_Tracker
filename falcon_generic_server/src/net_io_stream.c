@@ -56,8 +56,6 @@ ssize_t receive_bytes(int read_fd, void * main_buffer, ssize_t num_of_bytes)
             break;
         }
 
-        // sleep(1);
-        printf("\n\n%zi, %zi\n\n", num_of_bytes, total_bytes);
         byte_returned = recv(read_fd,
                              ((uint8_t *)buffer + total_bytes),
                              (num_of_bytes - total_bytes),
@@ -83,6 +81,12 @@ EXIT:
         DEBUG_PRINT(
             "\n\nERROR [x]  Receive process has been interrupted: %s\n\n",
             __func__);
+    }
+
+    if (NULL != buffer)
+    {
+        free(buffer);
+        buffer = NULL;
     }
 
     return total_bytes;

@@ -36,7 +36,7 @@ int main(int argc, char ** argv)
     server_config.port                = options.port;
     server_config.thread_count        = options.threads;
     server_config.requested_free_func = (free_f)free_session;
-    server_config.timeout             = 50;
+    server_config.timeout             = 5;
 
     err_code = setup_session(&server_config);
 

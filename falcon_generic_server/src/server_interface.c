@@ -258,6 +258,8 @@ static int server_shutdown(int svr_sock, threadpool_t * p_threadpool)
         goto EXIT;
     }
 
+    err_code = E_SUCCESS;
+
 EXIT:
 
     return err_code;

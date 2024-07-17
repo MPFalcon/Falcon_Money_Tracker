@@ -692,11 +692,16 @@ int list_clear(list_t * p_list)
     while (0 < p_list->size)
     {
         p_curr_node = p_curr_node->next;
+        p_list->customfree(p_prev_node->data);
+        p_prev_node->data = NULL;
         free(p_prev_node);
         p_prev_node = p_curr_node;
 
         p_list->size--;
     }
+
+    p_list->customfree(p_prev_node->data);
+    free(p_prev_node);
 
     p_list->head = NULL;
     p_list->tail = NULL;

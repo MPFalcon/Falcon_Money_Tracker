@@ -4,10 +4,6 @@
 
 void session_menu_active(void * args)
 {
-    // printf("\n\nNOTE [+]  Session starting for client #%d ... : %s\n\n",
-    //        client,
-    //        __func__);
-
     meta_data_t meta_data = {
         .bytes_received = 0, .bytes_sent = 0, .msg_len = 0, .msg = { 0 }
     };
@@ -30,14 +26,38 @@ void session_menu_active(void * args)
 
     client_session = (client_t *)args;
 
+    check_con = recv(
+        client_session->client_fd, &con_buffer, 1, (O_NONBLOCK | MSG_PEEK));
+
+    if (0 == check_con)
+    {
+        err_code = list_remove((*client_session->list_refernce),
+                               (void **)&client_session);
+
+        if (E_FAILURE == err_code)
+        {
+            DEBUG_PRINT("\n\nERROR [x]  Error occurred in list_remove() : %s",
+                        __func__);
+        }
+
+        goto EXIT;
+    }
+
+    printf("\n\nNOTE [+]  Session starting for client #%d ... : %s\n\n",
+           client_session->client_fd,
+           __func__);
+
     client_list_node = list_find_first_occurrence(
         (*client_session->list_refernce), (void **)&client_session);
 
+    printf("\n\nClient Node in memory: %p\n\n", (void *)client_list_node);
+
     if (NULL != client_list_node)
     {
+        printf("\n\nNeed Authentication\n\n");
         if (false == ((client_t *)client_list_node->data)->session_athorized)
         {
-            printf("\n\nNeed Authentication\n\n");
+
             auth_token =
                 ((data_t *)recieve_data(client_session->client_fd, meta_data))
                     ->unsign64;
@@ -68,25 +88,6 @@ void session_menu_active(void * args)
     // char * balenci = (char *)recieve_data(client, meta_data);
 
     // printf("\n\nIncoming String: %s\n\n", balenci);
-
-    check_con = recv(
-        client_session->client_fd, &con_buffer, 1, (O_NONBLOCK | MSG_PEEK));
-
-    if (0 == check_con)
-    {
-        err_code = list_remove((*client_session->list_refernce),
-                               (void **)&client_session);
-
-        if (E_FAILURE == err_code)
-        {
-            DEBUG_PRINT("\n\nERROR [x]  Error occurred in list_remove() : %s",
-                        __func__);
-
-            goto EXIT;
-        }
-
-        goto EXIT;
-    }
 
     opcode = (data_t *)recieve_data(client_session->client_fd, meta_data);
 

@@ -6,9 +6,9 @@
  * @param client_node   Valid client instance
  * @param curr_node     Valid instance of current node
  *
- * @return              NULL
+ * @return              Returned object in memory
  */
-static void * locate_client(const void * client_node, const void * curr_node);
+static void * locate_client(void * client_node, void * curr_node);
 
 /**
  * @brief           Free client node
@@ -50,7 +50,7 @@ int setup_session(config_t * server_config)
         goto EXIT;
     }
 
-    server_config->requested_args = (void *)active_client_list;
+    server_config->requested_args = (void *)&active_client_list;
     server_config->requested_func = (session_func)start_client;
 
     err_code = setup_driver(server_config);
@@ -115,21 +115,26 @@ EXIT:
     return NULL;
 }
 
-static void * locate_client(const void * client_node, const void * curr_node)
+static void * locate_client(void * client_node, void * curr_node)
 {
     void * ret_client = NULL;
 
-    if ((NULL == client_node) || (NULL == client_node))
+    printf("\n\nRunning\n\n");
+
+    if ((NULL == client_node) || (NULL == curr_node))
     {
         DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
 
         goto EXIT;
     }
 
+    printf("\n\nList of FDs in memory: %d\n\n",
+           ((client_t *)((list_node_t *)curr_node)->data)->client_fd);
+
     if (((client_t *)client_node)->client_fd ==
-        ((client_t *)curr_node)->client_fd)
+        ((client_t *)((list_node_t *)curr_node)->data)->client_fd)
     {
-        ret_client = (void *)curr_node;
+        ret_client = curr_node;
     }
 
 EXIT:
