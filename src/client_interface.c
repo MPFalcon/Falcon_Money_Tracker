@@ -83,7 +83,8 @@ EXIT:
 
 static void * start_client(int client, void * args)
 {
-    client_t * new_client = NULL;
+    client_t ** new_client_ref = NULL;
+    client_t *  new_client     = NULL;
 
     if (NULL == args)
     {
@@ -106,9 +107,11 @@ static void * start_client(int client, void * args)
     new_client->session_athorized = false;
     new_client->list_refernce     = (list_t **)args;
 
-    list_push_head((*new_client->list_refernce), (void *)new_client);
+    new_client_ref = &new_client;
 
-    session_menu_active((void *)new_client);
+    list_push_head((*new_client->list_refernce), (void *)new_client_ref);
+
+    session_menu_active((void *)new_client_ref);
 
 EXIT:
 
@@ -117,7 +120,8 @@ EXIT:
 
 static void * locate_client(void * client_node, void * curr_node)
 {
-    void * ret_client = NULL;
+    void *     ret_client = NULL;
+    client_t * client_ref = NULL;
 
     if ((NULL == client_node) || (NULL == curr_node))
     {
@@ -126,8 +130,9 @@ static void * locate_client(void * client_node, void * curr_node)
         goto EXIT;
     }
 
-    if (((client_t *)client_node)->client_fd ==
-        ((client_t *)((list_node_t *)curr_node)->data)->client_fd)
+    client_ref = ((*(client_t **)((list_node_t *)curr_node)->data));
+
+    if (((client_t *)client_node)->client_fd == client_ref->client_fd)
     {
         ret_client = curr_node;
     }
@@ -139,9 +144,23 @@ EXIT:
 
 static void free_client(void * args)
 {
-    if (NULL != args)
+    client_t ** client_ref = NULL;
+
+    if (NULL == args)
     {
-        free(args);
-        args = NULL;
+        DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
+
+        goto EXIT;
     }
+
+    client_ref = (client_t **)args;
+
+    free(*client_ref);
+    *client_ref = NULL;
+
+    args = NULL;
+
+EXIT:
+
+    return;
 }

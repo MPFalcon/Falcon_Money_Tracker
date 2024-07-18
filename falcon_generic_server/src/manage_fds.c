@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include "manage_fds.h"
 
 typedef struct poll_manager
@@ -58,6 +59,47 @@ static void add_to_pfds(pollfd_t ** pfds,
  * @param fd_count  Number of active connections
  */
 static void del_from_pfds(pollfd_t * pfds, nfds_t idx, nfds_t * fd_count);
+
+static void log_poll(const char * file_name, manager_t * config)
+{
+    int  write_fd = open(file_name,
+                        (O_CREAT | O_APPEND | O_WRONLY | O_CLOEXEC),
+                        (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH));
+    int  len      = 0;
+    char buffer[MAX_MSG_LEN];
+
+    if (0 > write_fd)
+    {
+        DEBUG_PRINT("\n\nERROR [x]  Failed to assign FD : %s\n\n", __func__);
+
+        goto EXIT;
+    }
+
+    len = snprintf(
+        buffer, MAX_MSG_LEN, "\n\n%lu\n\n", config->active_connections);
+    write(write_fd, buffer, len);
+
+    for (nfds_t idx = 0; config->poll_limit > idx; idx++)
+    {
+        len = snprintf(buffer,
+                       MAX_MSG_LEN,
+                       "%lu (%d, %hd, %hd) : ",
+                       idx,
+                       config->poll_list[idx].fd,
+                       config->poll_list[idx].events,
+                       config->poll_list[idx].revents);
+
+        write(write_fd, buffer, len);
+    }
+
+    write(write_fd, "\n\n", 3);
+
+    safe_close(write_fd);
+
+EXIT:
+
+    return;
+}
 
 int setup_poll(threadpool_t * threadpool,
                session_func   const_func,
@@ -145,6 +187,8 @@ int setup_poll(threadpool_t * threadpool,
                 }
             }
         }
+
+        log_poll("poll_list.txt", &poll_config);
     }
 
     err_code = E_SUCCESS;
@@ -204,24 +248,27 @@ static int probe_fd(manager_t * poll_config)
     }
     else
     {
-        if (-1 > poll_config->poll_list[poll_config->idx].fd)
-        {
-            check_con = recv(poll_config->poll_list[poll_config->idx].fd,
-                             &con_buffer,
-                             1,
-                             (O_NONBLOCK | MSG_PEEK));
+        // if (-1 > poll_config->poll_list[poll_config->idx].fd)
+        // {
+        //     poll_config->poll_list[poll_config->idx].fd *= -1;
+        //     check_con = recv(poll_config->poll_list[poll_config->idx].fd,
+        //                      &con_buffer,
+        //                      1,
+        //                      (O_NONBLOCK | MSG_PEEK));
 
-            if (0 == check_con)
-            {
+        //     if (0 == check_con)
+        //     {
+        //         safe_close(poll_config->poll_list[poll_config->idx].fd);
+        //         poll_config->poll_list[poll_config->idx].fd = -1;
+        //         del_from_pfds(poll_config->poll_list,
+        //                       poll_config->idx,
+        //                       &poll_config->active_connections);
 
-                safe_close(poll_config->poll_list[poll_config->idx].fd);
-                del_from_pfds(poll_config->poll_list,
-                              poll_config->idx,
-                              &poll_config->active_connections);
+        //         err_code = E_SUCCESS;
 
-                goto EXIT;
-            }
-        }
+        //         goto EXIT;
+        //     }
+        // }
 
         if (0 < poll_config->poll_list[poll_config->idx].fd)
         {
@@ -251,7 +298,10 @@ static void * client_driver(void * args)
 {
     manager_t * config     = NULL;
     args_t *    custom_job = NULL;
-    pollfd_t *  temp_list  = NULL;
+    pollfd_t *  temp_fd    = NULL;
+    nfds_t *    temp_idx   = NULL;
+    int         check_con  = 0;
+    char        con_buffer = 0;
 
     if (NULL == args)
     {
@@ -276,16 +326,16 @@ static void * client_driver(void * args)
         goto EXIT;
     }
 
-    temp_list = &config->poll_list[config->idx];
-
     pthread_mutex_lock(&config->threadpool->p_mutex_id);
-    custom_job->client_fd = temp_list->fd;
+    temp_idx         = &config->idx;
+    temp_fd          = &config->poll_list[*temp_idx];
+    custom_job->args = config->args;
     pthread_mutex_unlock(&config->threadpool->p_mutex_id);
 
-    custom_job->args = config->args;
+    custom_job->client_fd = temp_fd->fd;
 
     pthread_mutex_lock(&config->threadpool->p_mutex_id);
-    temp_list->fd *= -1;
+    temp_fd->fd *= -1;
     pthread_mutex_unlock(&config->threadpool->p_mutex_id);
 
     if (0 < custom_job->client_fd)
@@ -295,8 +345,21 @@ static void * client_driver(void * args)
     }
 
     pthread_mutex_lock(&config->threadpool->p_mutex_id);
-    temp_list->fd *= -1;
+    temp_fd->fd *= -1;
     pthread_mutex_unlock(&config->threadpool->p_mutex_id);
+
+    check_con = recv(temp_fd->fd, &con_buffer, 1, (O_NONBLOCK | MSG_PEEK));
+
+    if (0 == check_con)
+    {
+        safe_close(temp_fd->fd);
+        temp_fd->fd *= -1;
+
+        pthread_mutex_lock(&config->threadpool->p_mutex_id);
+        del_from_pfds(
+            config->poll_list, *temp_idx, &config->active_connections);
+        pthread_mutex_unlock(&config->threadpool->p_mutex_id);
+    }
 
 EXIT:
 
@@ -348,6 +411,7 @@ static void add_to_pfds(pollfd_t ** pfds,
 // Remove an index from the set
 static void del_from_pfds(pollfd_t * pfds, nfds_t idx, nfds_t * fd_count)
 {
+    printf("\n\n\n\n\n\n\nDeleting\n\n\n\n\n\n\n");
     // Copy the one from the end over this one
     pfds[idx] = pfds[((*fd_count) - 1)];
 
