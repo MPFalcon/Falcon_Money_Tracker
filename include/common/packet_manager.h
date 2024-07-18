@@ -9,7 +9,7 @@
 
 #    include "net_io_stream.h"
 
-#    define DEFAULT_BUFFER_SIZE 1
+#    define DEFAULT_BUFFER_SIZE 3
 
 typedef union __attribute__((packed)) data
 {

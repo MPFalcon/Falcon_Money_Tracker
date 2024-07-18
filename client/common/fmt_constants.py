@@ -15,7 +15,8 @@ MAX_BANK_LEN = 200
 MAX_NAME_LEN = 50
 MAX_PASS_LEN = 100
 
-DEFAULT_BUFFER_LEN = 1
+MIN_HDR_LEN        = 36
+DEFAULT_BUFFER_LEN = 3
 DEFAULT_PACKET_LEN = (28 + DEFAULT_BUFFER_LEN)
 
 AUTH_CLIENT       = 0xfeb4593fecc67839
@@ -113,32 +114,40 @@ def recieve_data(client):
     bytes_size = 0
     total_packets = 0
 
-    temp_bytes = recv_full_data(client, DEFAULT_PACKET_LEN)
+    temp_bytes = recv_full_data(client, MIN_HDR_LEN)
 
-    packet = unpack("!iQQQ", temp_bytes[:(28 + 1)])
+    if DEFAULT_BUFFER_LEN < 8:
+        temp_bytes = temp_bytes.ljust(MIN_HDR_LEN, b'\x00')
+
+    packet = unpack("!iQQQ", temp_bytes[:28])
 
     seq_num = packet[0]
     total_size = packet[1]
     bytes_size = packet[2]
     total_packets = packet[3]
     
-    data_to_return += temp_bytes[28:(bytes_size + 1)]
+    data_to_return += temp_bytes[28:(28 + bytes_size)]
     
     offset += bytes_size
 
     for i in range(1, total_packets):
-        temp_bytes = recv_full_data(client, DEFAULT_PACKET_LEN)
+        temp_bytes = recv_full_data(client, MIN_HDR_LEN)
 
-        packet = unpack("!iQQQ", temp_bytes[:(28 + 1)])
+        if DEFAULT_BUFFER_LEN < 8:
+            temp_bytes = temp_bytes.ljust(MIN_HDR_LEN, b'\x00')
+
+        packet = unpack("!iQQQ", temp_bytes[:28])
 
         seq_num = packet[0]
         total_size = packet[1]
         bytes_size = packet[2]
         total_packets = packet[3]
         
-        data_to_return += temp_bytes[28:(bytes_size + 1)]
+        data_to_return += temp_bytes[28:(28 + bytes_size)]
         
         offset += bytes_size
 
     if not (total_size == offset):
         print("\n\nERROR [x]  Failed to recieve full packets\n\n")
+
+    return data_to_return

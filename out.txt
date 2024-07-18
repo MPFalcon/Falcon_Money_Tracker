@@ -1,0 +1,32 @@
+
+
+NOTE[x]  List is empty: list_emptycheck
+
+
+
+NOTE[x]  List is empty: list_emptycheck
+
+
+
+NOTE[x]  List is empty: list_emptycheck
+
+
+
+NOTE[x]  List is empty: list_emptycheck
+
+
+
+NOTE[+]  SIGINT detected - Commencing graceful shutdown...: signal_handler
+
+
+=================================================================
+==1536251==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 40 byte(s) in 1 object(s) allocated from:
+    #0 0x7fa14f2b83b7 in __interceptor_calloc ../../../../src/libsanitizer/asan/asan_malloc_linux.cpp:77
+    #1 0x7fa14f8b54f8 in list_new /home/meredithjr/Downloads/Codez/Personal_Projects/Falcon_Money_Tracker/common/src/linked_list.c:80
+    #2 0x55e5b27a1ec3 in setup_session /home/meredithjr/Downloads/Codez/Personal_Projects/Falcon_Money_Tracker/src/client_interface.c:43
+    #3 0x55e5b27a0adf in main /home/meredithjr/Downloads/Codez/Personal_Projects/Falcon_Money_Tracker/src/main.c:41
+    #4 0x7fa14f046249 in __libc_start_call_main ../sysdeps/nptl/libc_start_call_main.h:58
+
+SUMMARY: AddressSanitizer: 40 byte(s) leaked in 1 allocation(s).

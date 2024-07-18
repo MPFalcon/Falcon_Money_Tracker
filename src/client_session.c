@@ -12,8 +12,6 @@ void session_menu_active(void * args)
     client_t *    client_session   = NULL;
     profile_t *   user_profile     = NULL;
     data_t *      integral_dat     = NULL;
-    char          con_buffer       = 0;
-    int           check_con        = 0;
     int           err_code         = E_FAILURE;
 
     if (NULL == args)
@@ -37,7 +35,6 @@ void session_menu_active(void * args)
 
         if (false == ((client_t *)client_list_node->data)->session_athorized)
         {
-            printf("\n\nNeed Authentication\n\n");
             integral_dat =
                 ((data_t *)recieve_data(client_session->client_fd, meta_data));
 
@@ -48,7 +45,7 @@ void session_menu_active(void * args)
 
             (void)convert_endianess64(&integral_dat->unsign64);
 
-            printf("\n\nGiven Token: %lx\n\n", integral_dat->unsign64);
+            // printf("\n\nGiven Token: %lx\n\n", integral_dat->unsign64);
 
             if (AUTH_CLIENT != integral_dat->unsign64)
             {
@@ -69,11 +66,6 @@ void session_menu_active(void * args)
             }
         }
     }
-
-    // char * balenci = (char *)recieve_data(client_session->client_fd,
-    // meta_data);
-
-    // printf("\n\nIncoming String: %s\n\n", balenci);
 
     if (NULL != integral_dat)
     {
@@ -105,7 +97,10 @@ void session_menu_active(void * args)
             // user_profile = create_profile(instruction_set, meta_data,
             // client);
             printf("\nRunning\n");
-
+            (void)send_data(client_session->client_fd,
+                            meta_data,
+                            "\n\nWelcome to Falcon Server\n\n",
+                            29);
             break;
         case ADD_BANK:
 

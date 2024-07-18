@@ -33,17 +33,6 @@ void * recieve_data(int client, meta_data_t meta_data)
     (void)convert_endianess64(&curr_header.byte_size);
     (void)convert_endianess64(&curr_header.total_packets);
 
-    printf("\n\nData Buffer Recieved: %zi\n\n", meta_data.bytes_received);
-
-    printf(
-        "\n\nHeader Detail - \nSequence Num #%u\nTotal Size: %lu\nBytes"
-        " Size: "
-        "%lu\nTotal Packets: %lu\n\n",
-        curr_header.seq_num,
-        curr_header.total_size,
-        curr_header.byte_size,
-        curr_header.total_packets);
-
     master_buffer = calloc(1, (curr_header.total_size + 1));
 
     if (NULL == master_buffer)
@@ -102,7 +91,7 @@ int send_data(int         client,
         .seq_num       = rand(),
         .total_size    = num_of_bytes,
         .byte_size     = 0,
-        .total_packets = (num_of_bytes / DEFAULT_BUFFER_SIZE),
+        .total_packets = ((num_of_bytes / DEFAULT_BUFFER_SIZE) + 1),
         .bytes         = { 0 },
     };
 
@@ -140,6 +129,11 @@ int send_data(int         client,
         meta_data.bytes_received =
             send_bytes(client, &out_going_header, HDR_LEN);
 
+        (void)convert_endianess32sign(&out_going_header.seq_num);
+        (void)convert_endianess64(&out_going_header.total_size);
+        (void)convert_endianess64(&out_going_header.byte_size);
+        (void)convert_endianess64(&out_going_header.total_packets);
+
         if (ERROR == meta_data.bytes_received)
         {
             DEBUG_PRINT(
@@ -148,11 +142,6 @@ int send_data(int         client,
 
             continue;
         }
-
-        (void)convert_endianess32sign(&out_going_header.seq_num);
-        (void)convert_endianess64(&out_going_header.total_size);
-        (void)convert_endianess64(&out_going_header.byte_size);
-        (void)convert_endianess64(&out_going_header.total_packets);
     }
 
 EXIT:

@@ -4,8 +4,7 @@ from cli import *
 def send_token(client):
     token_bytes = pack("!Q", AUTH_CLIENT)
     send_data(client, token_bytes)
-    #send_data(client, "BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!BALENCI!".encode('utf-8'))
-
+    
 def process_return_code(ret_code):
     if OP_SUCCESS == ret_code:
         print("\n\nSuccess!\n")
@@ -54,6 +53,7 @@ def menu(client):
           
       if user_input == '2':
           send_data(client, pack("!H", SIGNUP))
+          print(recieve_data(client).decode('utf-8'))
           #sign_up(profile, client)
       if user_input == '3':
           send_data(client, pack("!H", TERMINATE_SESSION))

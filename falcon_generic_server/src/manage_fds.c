@@ -173,7 +173,6 @@ static int probe_fd(manager_t * poll_config)
     int               client_fd      = 0;
     struct sockaddr * client_skt     = NULL;
     socklen_t         client_skt_len = 0;
-    session_t *       new_session    = NULL;
     int               check_con      = 0;
     char              con_buffer     = 0;
 
@@ -207,8 +206,6 @@ static int probe_fd(manager_t * poll_config)
     {
         if (-1 > poll_config->poll_list[poll_config->idx].fd)
         {
-            printf("\n\nDELETING\n\n");
-
             check_con = recv(poll_config->poll_list[poll_config->idx].fd,
                              &con_buffer,
                              1,

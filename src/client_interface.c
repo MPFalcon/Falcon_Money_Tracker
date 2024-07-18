@@ -119,17 +119,12 @@ static void * locate_client(void * client_node, void * curr_node)
 {
     void * ret_client = NULL;
 
-    printf("\n\nRunning\n\n");
-
     if ((NULL == client_node) || (NULL == curr_node))
     {
         DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n", __func__);
 
         goto EXIT;
     }
-
-    printf("\n\nList of FDs in memory: %d\n\n",
-           ((client_t *)((list_node_t *)curr_node)->data)->client_fd);
 
     if (((client_t *)client_node)->client_fd ==
         ((client_t *)((list_node_t *)curr_node)->data)->client_fd)
