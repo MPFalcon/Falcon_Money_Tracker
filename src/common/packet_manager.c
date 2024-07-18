@@ -23,6 +23,11 @@ void * recieve_data(int client, meta_data_t meta_data)
         goto EXIT;
     }
 
+    if (0 == meta_data.bytes_received)
+    {
+        goto EXIT;
+    }
+
     (void)convert_endianess32sign(&curr_header.seq_num);
     (void)convert_endianess64(&curr_header.total_size);
     (void)convert_endianess64(&curr_header.byte_size);

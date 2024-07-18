@@ -120,10 +120,11 @@ int setup_poll(threadpool_t * threadpool,
             goto EXIT;
         }
 
-        for (poll_config.idx = 0; poll_config.poll_limit > poll_config.idx;
+        for (poll_config.idx = 0;
+             poll_config.poll_limit > (poll_config.idx + 1);
              poll_config.idx++)
         {
-            if (poll_config.poll_list[poll_config.idx].fd <= STDERR_FILENO)
+            if (poll_config.poll_list[poll_config.idx].fd == -1)
             {
                 continue;
             }
@@ -170,10 +171,10 @@ static int probe_fd(manager_t * poll_config)
 {
     int               err_code       = E_FAILURE;
     int               client_fd      = 0;
-    int               check_con      = 0;
     struct sockaddr * client_skt     = NULL;
     socklen_t         client_skt_len = 0;
     session_t *       new_session    = NULL;
+    int               check_con      = 0;
     char              con_buffer     = 0;
 
     if (NULL == poll_config)
@@ -201,48 +202,44 @@ static int probe_fd(manager_t * poll_config)
                     client_fd,
                     &poll_config->active_connections,
                     &poll_config->poll_limit);
-
-        new_session = (session_t *)calloc(1, sizeof(session_t));
-
-        if (NULL == new_session)
-        {
-            DEBUG_PRINT("\n\nERROR [x]  Null Pointer Detected: %s\n\n",
-                        __func__);
-
-            goto EXIT;
-        }
-
-        new_session->associated_job = poll_config->const_func;
-        new_session->custom_free    = poll_config->free_func;
-        new_session->client_poll_fd =
-            &poll_config->poll_list[(poll_config->active_connections - 1)];
-        new_session->args = poll_config->args;
-
-        err_code = threadpool_add_job(poll_config->threadpool,
-                                      (job_f)client_driver,
-                                      (free_f)free_client_session,
-                                      (void *)new_session);
-
-        if (SUCCESS != err_code)
-        {
-            DEBUG_PRINT(
-                "\n\nERROR [x]  Error occurred in threadpool_add_job(): %s\n\n",
-                __func__);
-        }
     }
     else
     {
-        check_con = recv(poll_config->poll_list[poll_config->idx].fd,
-                         &con_buffer,
-                         1,
-                         (O_NONBLOCK | MSG_PEEK));
-
-        if (0 == check_con)
+        if (-1 > poll_config->poll_list[poll_config->idx].fd)
         {
-            safe_close(poll_config->poll_list[poll_config->idx].fd);
-            del_from_pfds(poll_config->poll_list,
-                          poll_config->idx,
-                          &poll_config->active_connections);
+            printf("\n\nDELETING\n\n");
+
+            check_con = recv(poll_config->poll_list[poll_config->idx].fd,
+                             &con_buffer,
+                             1,
+                             (O_NONBLOCK | MSG_PEEK));
+
+            if (0 == check_con)
+            {
+
+                safe_close(poll_config->poll_list[poll_config->idx].fd);
+                del_from_pfds(poll_config->poll_list,
+                              poll_config->idx,
+                              &poll_config->active_connections);
+
+                goto EXIT;
+            }
+        }
+
+        if (0 < poll_config->poll_list[poll_config->idx].fd)
+        {
+            err_code = threadpool_add_job(poll_config->threadpool,
+                                          (job_f)client_driver,
+                                          (free_f)free_client_session,
+                                          (void *)poll_config);
+
+            if (SUCCESS != err_code)
+            {
+                DEBUG_PRINT(
+                    "\n\nERROR [x]  Error occurred in threadpool_add_job():"
+                    " %s\n\n ",
+                    __func__);
+            }
         }
     }
 
@@ -255,8 +252,9 @@ EXIT:
 
 static void * client_driver(void * args)
 {
-    session_t * session    = NULL;
+    manager_t * config     = NULL;
     args_t *    custom_job = NULL;
+    pollfd_t *  temp_list  = NULL;
 
     if (NULL == args)
     {
@@ -274,32 +272,61 @@ static void * client_driver(void * args)
         goto EXIT;
     }
 
-    session = (session_t *)args;
+    config = (manager_t *)args;
 
-    custom_job->client_fd = session->client_poll_fd->fd;
-    session->client_poll_fd->fd *= -1;
-    custom_job->args = session->args;
+    if ((config->poll_limit - 1) == config->idx)
+    {
+        goto EXIT;
+    }
 
-    session->associated_job(custom_job->client_fd, custom_job->args);
-    session->custom_free(custom_job->args);
+    temp_list = &config->poll_list[config->idx];
 
-    session->client_poll_fd->fd *= -1;
+    pthread_mutex_lock(&config->threadpool->p_mutex_id);
+    custom_job->client_fd = temp_list->fd;
+    pthread_mutex_unlock(&config->threadpool->p_mutex_id);
 
-    free(custom_job);
-    custom_job = NULL;
+    custom_job->args = config->args;
+
+    pthread_mutex_lock(&config->threadpool->p_mutex_id);
+    temp_list->fd *= -1;
+    pthread_mutex_unlock(&config->threadpool->p_mutex_id);
+
+    if (0 < custom_job->client_fd)
+    {
+        config->const_func(custom_job->client_fd, custom_job->args);
+        config->free_func(custom_job->args);
+    }
+
+    pthread_mutex_lock(&config->threadpool->p_mutex_id);
+    temp_list->fd *= -1;
+    pthread_mutex_unlock(&config->threadpool->p_mutex_id);
 
 EXIT:
+
+    if (NULL != custom_job)
+    {
+        free(custom_job);
+        custom_job = NULL;
+    }
 
     return NULL;
 }
 
 static void free_client_session(void * data)
 {
-    if (NULL != data)
-    {
-        free(data);
-        data = NULL;
-    }
+    // session_t * session = NULL;
+
+    // if (NULL != data)
+    // {
+    //     session = (session_t *)data;
+
+    //     session->client_poll_fd->fd = -1;
+
+    //     free(data);
+    //     data = NULL;
+    // }
+
+    (void)data;
 }
 
 static void add_to_pfds(pollfd_t ** pfds,

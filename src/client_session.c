@@ -11,8 +11,7 @@ void session_menu_active(void * args)
     list_node_t * client_list_node = NULL;
     client_t *    client_session   = NULL;
     profile_t *   user_profile     = NULL;
-    data_t *      opcode           = NULL;
-    uint64_t      auth_token       = 0ULL;
+    data_t *      integral_dat     = NULL;
     char          con_buffer       = 0;
     int           check_con        = 0;
     int           err_code         = E_FAILURE;
@@ -26,23 +25,6 @@ void session_menu_active(void * args)
 
     client_session = (client_t *)args;
 
-    check_con = recv(
-        client_session->client_fd, &con_buffer, 1, (O_NONBLOCK | MSG_PEEK));
-
-    if (0 == check_con)
-    {
-        err_code = list_remove((*client_session->list_refernce),
-                               (void **)&client_session);
-
-        if (E_FAILURE == err_code)
-        {
-            DEBUG_PRINT("\n\nERROR [x]  Error occurred in list_remove() : %s",
-                        __func__);
-        }
-
-        goto EXIT;
-    }
-
     printf("\n\nNOTE [+]  Session starting for client #%d ... : %s\n\n",
            client_session->client_fd,
            __func__);
@@ -50,22 +32,25 @@ void session_menu_active(void * args)
     client_list_node = list_find_first_occurrence(
         (*client_session->list_refernce), (void **)&client_session);
 
-    printf("\n\nClient Node in memory: %p\n\n", (void *)client_list_node);
-
     if (NULL != client_list_node)
     {
-        printf("\n\nNeed Authentication\n\n");
+
         if (false == ((client_t *)client_list_node->data)->session_athorized)
         {
+            printf("\n\nNeed Authentication\n\n");
+            integral_dat =
+                ((data_t *)recieve_data(client_session->client_fd, meta_data));
 
-            auth_token =
-                ((data_t *)recieve_data(client_session->client_fd, meta_data))
-                    ->unsign64;
-            (void)convert_endianess64(&auth_token);
+            if (NULL == integral_dat)
+            {
+                goto EXIT;
+            }
 
-            printf("\n\nGiven Token: %lx\n\n", auth_token);
+            (void)convert_endianess64(&integral_dat->unsign64);
 
-            if (AUTH_CLIENT != auth_token)
+            printf("\n\nGiven Token: %lx\n\n", integral_dat->unsign64);
+
+            if (AUTH_CLIENT != integral_dat->unsign64)
             {
                 DEBUG_PRINT(
                     "\n\nERROR [x]  Unauthorized client detected -"
@@ -85,13 +70,27 @@ void session_menu_active(void * args)
         }
     }
 
-    // char * balenci = (char *)recieve_data(client, meta_data);
+    // char * balenci = (char *)recieve_data(client_session->client_fd,
+    // meta_data);
 
     // printf("\n\nIncoming String: %s\n\n", balenci);
 
-    opcode = (data_t *)recieve_data(client_session->client_fd, meta_data);
+    if (NULL != integral_dat)
+    {
+        free(integral_dat);
+        integral_dat = NULL;
+    }
 
-    switch (opcode->unsign16)
+    integral_dat = (data_t *)recieve_data(client_session->client_fd, meta_data);
+
+    if (NULL == integral_dat)
+    {
+        goto EXIT;
+    }
+
+    (void)convert_endianess16(&integral_dat->unsign16);
+
+    switch (integral_dat->unsign16)
     {
         case RECV_READY:
 
@@ -133,12 +132,41 @@ void session_menu_active(void * args)
             break;
     }
 
+    // check_con = recv(
+    //     client_session->client_fd, &con_buffer, 1, (O_NONBLOCK | MSG_PEEK));
+
+    // if (0 == check_con)
+    // {
+    //     err_code = list_remove((*client_session->list_refernce),
+    //                            (void **)&client_session);
+
+    //     if (E_FAILURE == err_code)
+    //     {
+    //         DEBUG_PRINT("\n\nERROR [x]  Error occurred in list_remove() :
+    //         %s",
+    //                     __func__);
+    //     }
+
+    //     safe_close(client_session->client_fd);
+
+    //     goto EXIT;
+    // }
+
     err_code = E_SUCCESS;
 
 EXIT:
 
-    free(user_profile);
-    user_profile = NULL;
+    if (NULL != integral_dat)
+    {
+        free(integral_dat);
+        integral_dat = NULL;
+    }
+
+    if (NULL != user_profile)
+    {
+        free(user_profile);
+        user_profile = NULL;
+    }
 
     return;
 }
